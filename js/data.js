@@ -7,14 +7,14 @@
    DEFAULT SETTINGS
    ──────────────────────────────────────────────────────────── */
 const DEFAULT_SETTINGS = {
-  title: 'My Portfolio',
+  title: 'Pham Manh Hung - Analytics Data Engineer Portfolio',
   favicon: '',
-  metaDesc: 'Welcome to my portfolio website.',
+  metaDesc: 'Portfolio of Pham Manh Hung, an Analytics Data Engineer focused on Databricks, Snowflake, Azure, Google Cloud, and building scalable data pipelines.',
   accentColor: '#7c3aed',
   emailjsServiceId: '',
   emailjsTemplateId: '',
   emailjsPublicKey: '',
-  contactEmail: ''
+  contactEmail: 'hungpm267@gmail.com'
 };
 
 /* ────────────────────────────────────────────────────────────
@@ -30,13 +30,13 @@ const DEFAULT_SECTIONS = [
       name: { vi: 'Phạm Mạnh Hùng', en: 'Pham Manh Hung' },
       title: { vi: 'Analytics Data Engineer', en: 'Analytics Data Engineer' },
       bio: {
-        vi: 'Xin chào, Tôi là HungKaine, tôi tốt nghiệp chuyên ngành Hệ thống Thông tin tại trường Đại học Công nghệ Thông tin - Đại học Quốc gia TP.HCM. Tôi là một người yêu thích công nghệ và luôn mong muốn học hỏi những điều mới. Hiện tôi đang là Kỹ sư Dữ liệu và Phân tích với các công cụ chủ đạo như MS Fabric, MS PowerBi, Snowflake và DataBricks. Tôi có kinh nghiệm trong việc xây dựng các hệ thống dữ liệu lớn, các pipeline và các giải pháp phân tích dữ liệu.',
-        en: 'Hi there! I\'m a passionate developer with 3+ years of experience building modern web applications. I love turning creative ideas into real-world products.'
+        vi: 'Tôi là kỹ sư dữ liệu tốt nghiệp chuyên ngành Hệ thống Thông tin tại trường Đại học Công nghệ Thông tin - ĐHQG TP.HCM (UIT). Tôi đam mê và định hướng phát triển chuyên sâu trong lĩnh vực Kỹ thuật Dữ liệu (Data Engineering). Tôi có kinh nghiệm thực tế trong việc thiết kế và chuyển đổi hệ thống dữ liệu từ kiến trúc ETL sang ELT, đảm bảo tính nhất quán của dữ liệu. Hiện tại, tôi đang tham gia chương trình đào tạo kỹ sư chuyên sâu tại NashTech để nâng cao năng lực kỹ thuật và kỹ năng mềm trong môi trường làm việc toàn cầu.',
+        en: 'I am an Information Systems graduate from UIT, and I am highly focused on developing my career in Data Engineering. Previously, I gained practical experience in designing and migrating data systems from ETL to ELT architectures while ensuring data consistency. Currently, I am participating in NashTech\'s intensive engineering training program to advance technical capabilities in data analytics, cloud infrastructure, and enterprise data architectures within a global environment.'
       },
       avatar: '',
       socialLinks: [
-        { id: 'gh', platform: 'GitHub', url: 'https://github.com/hungpm267', icon: 'github' },
-        { id: 'li', platform: 'LinkedIn', url: 'linkedin.com/in/hungpm267/', icon: 'linkedin' }
+        { id: 'gh', platform: 'GitHub', url: 'https://github.com/Hungpm267', icon: 'github' },
+        { id: 'li', platform: 'LinkedIn', url: 'https://linkedin.com/in/hungpm267/', icon: 'linkedin' }
       ]
     }
   },
@@ -49,42 +49,42 @@ const DEFAULT_SECTIONS = [
       items: [
         {
           id: 'proj-1',
-          name: { vi: 'Ứng dụng Quản lý Công việc', en: 'Task Management App' },
+          name: { vi: 'Hệ thống Kho dữ liệu & OLAP cho dữ liệu Động đất', en: 'Data Warehouse & OLAP System for Earthquake Data' },
           description: {
-            vi: 'Ứng dụng quản lý công việc theo thời gian thực với tính năng kéo thả, phân công nhóm và báo cáo tiến độ.',
-            en: 'A real-time task management application with drag-and-drop, team assignment, and progress reporting features.'
+            vi: 'Xây dựng hệ thống Data Warehouse hoàn chỉnh sử dụng SSIS để trích xuất, biến đổi và lưu trữ tập dữ liệu động đất lịch sử vào SQL Server. Xây dựng các khối SSAS OLAP đa chiều để tổng hợp và xử lý phân tích dữ liệu hiệu quả. Thiết kế các báo cáo trực quan bằng SSRS, Power BI và Excel Pivot Tables.',
+            en: 'Developed an end-to-end Data Warehouse system using SSIS to extract, transform, and store historical earthquake datasets into SQL Server. Built multi-dimensional OLAP cubes with SSAS to enable efficient data aggregation and analytical processing. Constructed interactive reports and dashboards using SSRS, Power BI, and Excel Pivot Tables.'
           },
           image: '',
-          tags: ['React', 'Node.js', 'Socket.io', 'MongoDB'],
-          demoUrl: 'https://example.com',
-          repoUrl: 'https://github.com',
+          tags: ['SQL Server', 'SSIS', 'SSAS', 'SSRS', 'Power BI', 'Python', 'Excel'],
+          demoUrl: '',
+          repoUrl: 'https://github.com/Hungpm267',
           featured: true
         },
         {
           id: 'proj-2',
-          name: { vi: 'Nền tảng Thương mại Điện tử', en: 'E-Commerce Platform' },
+          name: { vi: 'Dự đoán Chất lượng Rượu bằng Apache Spark', en: 'Wine Quality Prediction with Apache Spark' },
           description: {
-            vi: 'Nền tảng mua sắm trực tuyến với tính năng thanh toán, quản lý kho hàng và phân tích dữ liệu.',
-            en: 'An online shopping platform with payment processing, inventory management, and data analytics.'
+            vi: 'Sử dụng PySpark trong hệ sinh thái Apache Spark để thực hiện Phân tích Dữ liệu Khám phá (EDA) và tiền xử lý dữ liệu trên các tập dữ liệu lớn. Thiết kế và triển khai mô hình phân loại K-Nearest Neighbors (KNN) từ đầu (không dùng MLlib) để dự đoán chất lượng rượu.',
+            en: 'Employed PySpark within the Apache Spark ecosystem to execute Exploratory Data Analysis (EDA) and data preprocessing on large datasets. Engineered and implemented a K-Nearest Neighbors (KNN) classification model from scratch (without relying on MLlib) to accurately predict wine quality metrics.'
           },
           image: '',
-          tags: ['Next.js', 'Stripe', 'PostgreSQL', 'Redis'],
-          demoUrl: 'https://example.com',
-          repoUrl: 'https://github.com',
-          featured: false
+          tags: ['Apache Spark', 'PySpark', 'Python', 'Jupyter Notebook'],
+          demoUrl: '',
+          repoUrl: 'https://github.com/Hungpm267',
+          featured: true
         },
         {
           id: 'proj-3',
-          name: { vi: 'Ứng dụng Thời tiết', en: 'Weather App' },
+          name: { vi: 'Đường ống Dữ liệu Đám mây qua Azure Data Factory & Databricks', en: 'Cloud Data Pipeline via Azure Data Factory & Databricks' },
           description: {
-            vi: 'Ứng dụng thời tiết đẹp mắt hiển thị dự báo 7 ngày với biểu đồ tương tác và hỗ trợ vị trí GPS.',
-            en: 'A beautiful weather app showing 7-day forecasts with interactive charts and GPS location support.'
+            vi: 'Thiết kế quy trình nạp dữ liệu tự động bằng Azure Data Factory. Triển khai Kiến trúc Medallion (Bronze, Silver, Gold layers) trong Azure Data Lake Gen2 sử dụng Azure Databricks và PySpark để làm sạch, kiểm định schema và biến đổi dữ liệu. Quản lý bảo mật thông qua Azure Key Vault và lưu trữ dữ liệu phân tích tại Azure Synapse Analytics.',
+            en: 'Designed automated ingestion workflows using Azure Data Factory pipelines to securely collect and move raw data. Implemented a Medallion Architecture (Bronze, Silver, and Gold layers) inside Azure Data Lake Gen2 using Azure Databricks and PySpark for scalable data cleansing, schema validation, and transformations. Managed credentials using Azure Key Vault. Loaded final data into Azure Synapse Analytics.'
           },
           image: '',
-          tags: ['Vue.js', 'OpenWeather API', 'Chart.js'],
-          demoUrl: 'https://example.com',
-          repoUrl: 'https://github.com',
-          featured: false
+          tags: ['Azure Data Factory', 'Azure Data Lake Gen2', 'Azure Databricks', 'Azure Synapse Analytics', 'Azure Key Vault', 'PySpark'],
+          demoUrl: '',
+          repoUrl: 'https://github.com/Hungpm267',
+          featured: true
         }
       ]
     }
@@ -98,28 +98,28 @@ const DEFAULT_SECTIONS = [
       items: [
         {
           id: 'exp-1',
-          company: { vi: 'Công ty Công nghệ ABC', en: 'ABC Technology Company' },
-          role: { vi: 'Lập trình viên Full-Stack', en: 'Full-Stack Developer' },
+          company: { vi: 'NashTech', en: 'NashTech' },
+          role: { vi: 'Kỹ sư Dữ liệu và Phân tích (Analytics Data Engineer)', en: 'Analytics Data Engineer (Vocational Training Program)' },
           description: {
-            vi: 'Phát triển và duy trì các ứng dụng web quy mô lớn sử dụng React, Node.js và AWS. Dẫn dắt nhóm 5 kỹ sư trong việc xây dựng các tính năng mới.',
-            en: 'Developed and maintained large-scale web applications using React, Node.js, and AWS. Led a team of 5 engineers in building new features.'
+            vi: 'Tham gia chương trình đào tạo kỹ sư chuyên sâu để nâng cao năng lực kỹ thuật về phân tích dữ liệu, hạ tầng đám mây và kiến trúc dữ liệu doanh nghiệp trong môi trường toàn cầu.\n• Công nghệ: Databricks, Snowflake, Fabric, PowerBI, T-SQL (SQL Server), PostgreSQL, PL/SQL (Oracle), SSIS, Pandas/Pyspark, Lakehouse/Warehouse.\n• Kỹ năng: Mô hình hóa dữ liệu (Kimball/Inmon), Data Governance, Thiết kế mẫu ETL.',
+            en: 'Participating in an intensive engineering training program to advance technical capabilities in data analytics, cloud infrastructure, and enterprise data architectures within a global environment.\n• Technologies: Databricks, Snowflake, Fabric, PowerBI, T-SQL (SQL Server), PostgreSQL, PL/SQL (Oracle), SSIS, Pandas/Pyspark, Lakehouse/Warehouse.\n• Data Skills: Data Modeling (Kimball/Inmon), Data Governance, ETL Design Patterns.'
           },
           logo: '',
-          startDate: '2022-01',
+          startDate: '2026-04',
           endDate: '',
           current: true
         },
         {
           id: 'exp-2',
-          company: { vi: 'Startup XYZ', en: 'XYZ Startup' },
-          role: { vi: 'Lập trình viên Front-End', en: 'Front-End Developer' },
+          company: { vi: 'Cigro', en: 'Cigro' },
+          role: { vi: 'Kỹ sư Dữ liệu Sản phẩm (Product Data Engineer)', en: 'Product Data Engineer' },
           description: {
-            vi: 'Xây dựng giao diện người dùng tương tác cho nền tảng SaaS sử dụng Vue.js. Cải thiện hiệu suất trang tải lên 40%.',
-            en: 'Built interactive user interfaces for a SaaS platform using Vue.js. Improved page load performance by 40%.'
+            vi: 'Tập trung xây dựng các đường ống ETL/ELT mới và chuyển đổi hệ thống dữ liệu để hỗ trợ phát triển sản phẩm.\n• Công nghệ: Python, SQL, Google Cloud (GCS, BigQuery), Slowly Changing Dimension (SCD), Data Build Tool (dbt), GitLab, Prefect.\n• Công việc: Phát triển các đường ống ETL mới, chuyển đổi các hệ thống ETL cũ sang kiến trúc ELT hiện đại; duy trì và tối ưu hóa các pipeline hiện tại; giám sát quy trình dữ liệu với Prefect; viết tài liệu kỹ thuật chi tiết.',
+            en: 'Focused on building new ETL/ELT pipelines and migrating the company\'s data pipeline system to support product growth.\n• Technologies: Python, SQL, Google Cloud (GCS, BigQuery), Slowly Changing Dimension (SCD), Data Build Tool (dbt), GitLab, Prefect.\n• Responsibilities: Developed new ETL pipelines and migrated legacy ETL systems to modern ELT architectures; maintained existing production pipelines; monitored workflows using Prefect; authored comprehensive technical documentation.'
           },
           logo: '',
-          startDate: '2020-06',
-          endDate: '2021-12',
+          startDate: '2025-12',
+          endDate: '2026-03',
           current: false
         }
       ]
@@ -134,27 +134,27 @@ const DEFAULT_SECTIONS = [
       items: [
         {
           id: 'edu-1',
-          school: { vi: 'Đại học Bách Khoa Hà Nội', en: 'Hanoi University of Science and Technology' },
-          degree: { vi: 'Kỹ thuật Phần mềm', en: 'Software Engineering' },
+          school: { vi: 'Đại học Công nghệ Thông tin - ĐHQG TP.HCM (UIT)', en: 'University of Information Technology - VNUHCM' },
+          degree: { vi: 'Cử nhân Hệ thống Thông tin (Đã tốt nghiệp)', en: 'Bachelor of Information Systems (Graduated)' },
           description: {
-            vi: 'Tốt nghiệp loại Giỏi. Nghiên cứu chuyên sâu về trí tuệ nhân tạo và phát triển ứng dụng di động.',
-            en: 'Graduated with distinction. Research focus on artificial intelligence and mobile application development.'
+            vi: 'Thời gian: 07/2021 – 11/2025.\nCác môn học liên quan: Cơ sở dữ liệu phân tán, Khai phá dữ liệu, Dữ liệu lớn, Phân tích dữ liệu với Python, Phân tích dữ liệu kinh doanh, Kho dữ liệu & OLAP, Hệ quản trị cơ sở dữ liệu, Điện toán đám mây.',
+            en: 'July 2021 – November 2025. Relevant courses: Distributed Database Systems, Data Mining, Big Data, Data Analysis with Python, Business Data Analytics, Data Warehousing & OLAP, Database Management Systems, Cloud Computing.'
           },
           logo: '',
-          startDate: '2016-09',
-          endDate: '2020-06'
+          startDate: '2021-07',
+          endDate: '2025-11'
         },
         {
           id: 'edu-2',
-          school: { vi: 'Coursera / Google', en: 'Coursera / Google' },
-          degree: { vi: 'Chứng chỉ Cloud Computing', en: 'Cloud Computing Certificate' },
+          school: { vi: 'IBM & Các Tổ chức Đào tạo', en: 'IBM & Learning Platforms' },
+          degree: { vi: 'Chứng chỉ Chuyên môn & Kỹ năng', en: 'Professional Certificates' },
           description: {
-            vi: 'Hoàn thành chương trình chứng chỉ Google Cloud Professional với điểm xuất sắc.',
-            en: 'Completed Google Cloud Professional certificate program with distinction.'
+            vi: '• TOEIC LR: 735 điểm\n• Python for Data Science, AI & Development - IBM\n• Python Project for Data Engineering - IBM\n• Business Intelligence (BI) Essentials - IBM\n• Foundations: Data, Data, Everywhere - IBM\n• SQL (Intermediate) - HackerRank\n• Critical Thinking Certificate - Thinking School',
+            en: '• TOEIC LR: 735\n• Python for Data Science, AI & Development - IBM\n• Python Project for Data Engineering - IBM\n• Business Intelligence (BI) Essentials - IBM\n• Foundations: Data, Data, Everywhere - IBM\n• SQL (Intermediate) - HackerRank\n• Critical Thinking Certificate - Thinking School'
           },
           logo: '',
-          startDate: '2021-03',
-          endDate: '2021-09'
+          startDate: '2024-01',
+          endDate: '2025-12'
         }
       ]
     }
@@ -167,36 +167,33 @@ const DEFAULT_SECTIONS = [
     data: {
       groups: [
         {
-          id: 'sg-frontend',
-          name: { vi: 'Front-End', en: 'Front-End' },
+          id: 'sg-data-cloud',
+          name: { vi: 'Kỹ thuật Dữ liệu & Đám mây', en: 'Data Engineering & Cloud' },
           skills: [
-            { id: 'sk-html', name: 'HTML / CSS', level: 95 },
-            { id: 'sk-js', name: 'JavaScript', level: 90 },
-            { id: 'sk-react', name: 'React', level: 88 },
-            { id: 'sk-vue', name: 'Vue.js', level: 80 },
-            { id: 'sk-ts', name: 'TypeScript', level: 82 },
-            { id: 'sk-tailwind', name: 'Tailwind CSS', level: 92 }
+            { id: 'sk-databricks', name: 'Databricks / PySpark', level: 85 },
+            { id: 'sk-snowflake', name: 'Snowflake', level: 80 },
+            { id: 'sk-fabric', name: 'Microsoft Fabric', level: 80 },
+            { id: 'sk-gcp', name: 'Google Cloud (GCS, BigQuery)', level: 82 },
+            { id: 'sk-azure', name: 'Azure (ADF, Databricks, Synapse)', level: 85 }
           ]
         },
         {
-          id: 'sg-backend',
-          name: { vi: 'Back-End', en: 'Back-End' },
+          id: 'sg-etl-analytics',
+          name: { vi: 'Công cụ ETL & Phân tích', en: 'ETL Tools & Analytics' },
           skills: [
-            { id: 'sk-node', name: 'Node.js', level: 85 },
-            { id: 'sk-python', name: 'Python', level: 78 },
-            { id: 'sk-express', name: 'Express.js', level: 85 },
-            { id: 'sk-sql', name: 'SQL', level: 75 },
-            { id: 'sk-mongo', name: 'MongoDB', level: 80 }
+            { id: 'sk-dbt', name: 'dbt (Data Build Tool)', level: 85 },
+            { id: 'sk-prefect', name: 'Prefect (Orchestration)', level: 80 },
+            { id: 'sk-powerbi', name: 'Power BI / SSRS', level: 88 },
+            { id: 'sk-ssis', name: 'SSIS / SSAS', level: 82 }
           ]
         },
         {
-          id: 'sg-tools',
-          name: { vi: 'Công cụ & DevOps', en: 'Tools & DevOps' },
+          id: 'sg-languages-tools',
+          name: { vi: 'Lập trình & Công cụ khác', en: 'Programming & General Tools' },
           skills: [
-            { id: 'sk-git', name: 'Git / GitHub', level: 92 },
-            { id: 'sk-docker', name: 'Docker', level: 70 },
-            { id: 'sk-aws', name: 'AWS', level: 65 },
-            { id: 'sk-figma', name: 'Figma', level: 72 }
+            { id: 'sk-python', name: 'Python', level: 88 },
+            { id: 'sk-sql', name: 'SQL (T-SQL, PL/SQL, PostgreSQL)', level: 90 },
+            { id: 'sk-git', name: 'Git / GitLab / GitHub', level: 85 }
           ]
         }
       ]
@@ -211,25 +208,25 @@ const DEFAULT_SECTIONS = [
       items: [
         {
           id: 'blog-1',
-          title: { vi: 'Tại sao tôi chọn React cho dự án lớn', en: 'Why I Choose React for Large Projects' },
+          title: { vi: 'So sánh Kiến trúc ETL và ELT trong Data Engineering', en: 'Comparing ETL and ELT Architectures in Data Engineering' },
           content: {
-            vi: 'Trong bài viết này, tôi chia sẻ kinh nghiệm và lý do tại sao React vẫn là lựa chọn hàng đầu cho các dự án lớn trong năm 2024...',
-            en: 'In this article, I share my experience and reasons why React remains the top choice for large projects in 2024...'
+            vi: 'Chia sẻ kinh nghiệm thực tế về việc chuyển đổi hệ thống dữ liệu từ ETL truyền thống sang kiến trúc ELT hiện đại sử dụng dbt và BigQuery...',
+            en: 'Sharing practical experience on migrating data systems from traditional ETL to modern ELT architectures using dbt and BigQuery...'
           },
           cover: '',
-          date: '2024-03-15',
-          tags: ['React', 'JavaScript', 'Web Dev']
+          date: '2026-03-01',
+          tags: ['Data Engineering', 'ETL', 'ELT', 'dbt']
         },
         {
           id: 'blog-2',
-          title: { vi: 'Tối ưu hiệu suất CSS với CSS Variables', en: 'Optimizing Performance with CSS Variables' },
+          title: { vi: 'Xây dựng Hồ Dữ liệu (Lakehouse) với Medallion Architecture', en: 'Building a Lakehouse with Medallion Architecture' },
           content: {
-            vi: 'CSS Variables (Custom Properties) không chỉ giúp code sạch hơn mà còn cải thiện đáng kể hiệu suất trang web...',
-            en: 'CSS Variables (Custom Properties) not only make code cleaner but also significantly improve website performance...'
+            vi: 'Hướng dẫn chi tiết cách thiết lập các tầng dữ liệu Bronze, Silver, và Gold bằng PySpark trên Azure Databricks...',
+            en: 'Detailed guide on setting up Bronze, Silver, and Gold data layers using PySpark on Azure Databricks...'
           },
           cover: '',
-          date: '2024-01-20',
-          tags: ['CSS', 'Performance', 'Frontend']
+          date: '2026-05-10',
+          tags: ['Databricks', 'Lakehouse', 'PySpark', 'Azure']
         }
       ]
     }
@@ -262,17 +259,6 @@ const DEFAULT_SECTIONS = [
           role: { vi: 'CTO', en: 'CTO' },
           company: { vi: 'Startup XYZ', en: 'XYZ Startup' },
           authorAvatar: ''
-        },
-        {
-          id: 'test-3',
-          content: {
-            vi: 'Tôi đã hợp tác với nhiều lập trình viên nhưng hiếm khi gặp được người vừa giỏi kỹ thuật vừa có khả năng giao tiếp tốt như vậy.',
-            en: 'I\'ve worked with many developers but rarely find someone who is both technically skilled and has excellent communication skills like this.'
-          },
-          authorName: 'Phạm Thị D',
-          role: { vi: 'UI/UX Designer', en: 'UI/UX Designer' },
-          company: { vi: 'Agency Z', en: 'Agency Z' },
-          authorAvatar: ''
         }
       ]
     }
@@ -285,17 +271,15 @@ const DEFAULT_SECTIONS = [
     data: {
       title: { vi: 'Liên hệ với tôi', en: 'Get In Touch' },
       subtitle: {
-        vi: 'Hãy cùng nhau tạo ra những điều tuyệt vời! Tôi luôn sẵn sàng lắng nghe và hợp tác trong các dự án mới.',
-        en: 'Let\'s create something amazing together! I\'m always ready to listen and collaborate on new projects.'
+        vi: 'Hãy cùng nhau tạo ra những điều tuyệt vời! Tôi luôn sẵn sàng lắng nghe và hợp tác trong các dự án mới về dữ liệu.',
+        en: 'Let\'s create something amazing together! I\'m always ready to collaborate on new data engineering projects.'
       },
-      phone: '+84 xxx xxx xxx',
-      address: { vi: 'Hà Nội, Việt Nam', en: 'Hanoi, Vietnam' },
-      email: 'contact@example.com',
+      phone: '0333856974',
+      address: { vi: 'Quận 7, TP. Hồ Chí Minh, Việt Nam', en: 'District 7, Ho Chi Minh City, Vietnam' },
+      email: 'hungpm267@gmail.com',
       socialLinks: [
-        { id: 'gh', platform: 'GitHub', url: 'https://github.com/', icon: 'github' },
-        { id: 'li', platform: 'LinkedIn', url: 'https://linkedin.com/', icon: 'linkedin' },
-        { id: 'tw', platform: 'Twitter', url: 'https://twitter.com/', icon: 'twitter' },
-        { id: 'fb', platform: 'Facebook', url: 'https://facebook.com/', icon: 'facebook' }
+        { id: 'gh', platform: 'GitHub', url: 'https://github.com/Hungpm267', icon: 'github' },
+        { id: 'li', platform: 'LinkedIn', url: 'https://linkedin.com/in/hungpm267/', icon: 'linkedin' }
       ]
     }
   }

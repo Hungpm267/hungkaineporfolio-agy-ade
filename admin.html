@@ -1669,6 +1669,23 @@
               <span class="form-help">This is the URL for your public portfolio (index.html)</span>
             </div>
           </div>
+
+          <!-- Import CV / Reset Defaults -->
+          <div class="card" style="border: 1px dashed rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.02);">
+            <div class="card-title" style="color: var(--accent-light);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              Import CV / Reset to Defaults
+            </div>
+            <div class="form-row">
+              <label style="color: var(--text-2); margin-bottom: 0.5rem;">Import all CV data (experience, skills, projects, and education) parsed from your PDF file.</label>
+              <div>
+                <button class="btn btn-danger" id="btnResetToDefaults" style="background: rgba(139,92,246,0.15); color: var(--accent-light); border: 1px solid rgba(139,92,246,0.3);">
+                  Import CV & Sync Database
+                </button>
+              </div>
+              <span class="form-help" style="color: var(--text-3); margin-top: 0.5rem;">This will overwrite current sections in Supabase with the parsed CV data defined in your codebase defaults.</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -3217,6 +3234,34 @@
     showToast('Settings saved!', 'success');
   }
 
+  async function resetToDefaults() {
+    if (!confirm("Are you sure you want to overwrite all sections and settings with the parsed CV defaults? This will sync the changes to your database.")) {
+      return;
+    }
+    
+    showToast("Importing CV and syncing database...", "info");
+    
+    try {
+      if (typeof DB !== 'undefined') {
+        var settingsCopy = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+        var sectionsCopy = JSON.parse(JSON.stringify(DEFAULT_SECTIONS));
+        
+        await DB.saveSettings(settingsCopy);
+        await DB.saveSections(sectionsCopy);
+        
+        showToast("Database synced with CV data!", "success");
+        setTimeout(function() {
+          window.location.reload();
+        }, 1500);
+      } else {
+        showToast("Error: Database layer not found.", "error");
+      }
+    } catch (e) {
+      console.error(e);
+      showToast("Sync failed: " + e.message, "error");
+    }
+  }
+
   // ─── User Management ──────────────────────────────────────────
   function getUsers() {
     if (typeof DB !== 'undefined' && DB.getUsers) {
@@ -3452,6 +3497,7 @@
 
     // Page settings
     document.getElementById('btnSavePageSettings').addEventListener('click', savePageSettings);
+    document.getElementById('btnResetToDefaults').addEventListener('click', resetToDefaults);
 
     // User management
     document.getElementById('btnAddUser').addEventListener('click', addUser);

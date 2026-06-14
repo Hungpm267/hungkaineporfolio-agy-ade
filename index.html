@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary SEO -->
+  <title>Portfolio | Hung M.</title>
+  <meta name="description" content="Portfolio cá nhân của Hung M. — nhà phát triển phần mềm đam mê xây dựng sản phẩm đẹp và hiệu quả." />
+  <meta name="keywords" content="portfolio, developer, lập trình viên, web developer, frontend, backend, Vietnam" />
+  <meta name="author" content="Hung M." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://yourportfolio.com/" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://yourportfolio.com/" />
+  <meta property="og:title" content="Portfolio | Hung M." />
+  <meta property="og:description" content="Portfolio cá nhân của Hung M. — nhà phát triển phần mềm đam mê xây dựng sản phẩm đẹp và hiệu quả." />
+  <meta property="og:image" content="https://yourportfolio.com/assets/og-image.jpg" />
+  <meta property="og:locale" content="vi_VN" />
+  <meta property="og:locale:alternate" content="en_US" />
+  <meta property="og:site_name" content="Portfolio" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content="https://yourportfolio.com/" />
+  <meta name="twitter:title" content="Portfolio | Hung M." />
+  <meta name="twitter:description" content="Portfolio cá nhân của Hung M. — nhà phát triển phần mềm đam mê xây dựng sản phẩm đẹp và hiệu quả." />
+  <meta name="twitter:image" content="https://yourportfolio.com/assets/og-image.jpg" />
+
+  <!-- Theme color for mobile browsers -->
+  <meta name="theme-color" content="#0f0f1a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/public.css" />
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Hung M.",
+    "url": "https://yourportfolio.com/",
+    "sameAs": [],
+    "jobTitle": "Software Developer",
+    "description": "Portfolio cá nhân của Hung M. — nhà phát triển phần mềm đam mê xây dựng sản phẩm đẹp và hiệu quả."
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       NAVIGATION BAR
+  ════════════════════════════════════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="container navbar__inner">
+      <!-- Logo / Brand -->
+      <a href="#" class="navbar__logo" id="nav-logo">Portfolio</a>
+
+      <!-- Generated nav links (JS populates) -->
+      <div class="navbar__nav" id="nav-links">
+        <!-- JS generates these based on visible sections -->
+      </div>
+
+      <!-- Controls: lang toggle, theme toggle, hamburger -->
+      <div class="navbar__actions">
+        <button id="btn-lang" class="icon-btn lang-btn" title="Toggle Language" aria-label="Toggle Language">VI</button>
+        <button id="btn-theme" class="icon-btn" title="Toggle Theme" aria-label="Toggle Theme">🌙</button>
+        <button class="navbar__hamburger" id="hamburger" aria-label="Open navigation menu" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile nav drawer (JS populates links, hamburger toggles) -->
+  <div class="navbar__mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    <div class="navbar__nav" id="mobile-nav-links" style="flex-direction: column; gap: var(--space-lg); align-items: center;">
+      <!-- JS generates these based on visible sections -->
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN PORTFOLIO CONTENT
+       JS renders all visible sections here
+  ════════════════════════════════════════════ -->
+  <main id="portfolio-root" aria-label="Portfolio content"></main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__copy">
+        &copy; <span id="footer-year">2026</span> Portfolio. All rights reserved.
+      </div>
+      <div class="footer__links">
+        <a href="login.html" class="footer__link" id="footer-admin-link">Admin Portal</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════════════════════
+       SCROLL TO TOP BUTTON
+  ════════════════════════════════════════════ -->
+  <button class="scroll-top" id="scroll-top" title="Back to top" aria-label="Scroll back to top">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </button>
+
+  <!-- ═══════════════════════════════════════════
+       BLOG POST MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal-overlay" id="blog-modal" role="dialog" aria-modal="true" aria-labelledby="blog-modal-title" aria-hidden="true">
+    <div class="modal-content blog-modal-content">
+      <div class="modal-header">
+        <button class="modal-close" id="blog-modal-close" aria-label="Close blog post">&times;</button>
+      </div>
+      <div id="blog-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════════════════ -->
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+  <!-- Portfolio data layer -->
+  <script src="js/data.js"></script>
+
+  <!-- Public portfolio app -->
+  <script src="js/public.js"></script>
+
+</body>
+</html>

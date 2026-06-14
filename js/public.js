@@ -16,11 +16,15 @@ let testimonialTimers = {};
 /* ─────────────────────────────────────────────
    ENTRY POINT
 ───────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  if (typeof DB !== 'undefined' && DB.init) {
+    await DB.init();
+  }
   initTheme();
   initLang();
   applySettings();
   renderSections();
+  initHeroCanvas(document.getElementById('global-canvas'));
   initNavbar();
   initScrollAnimations();
   initScrollTop();
@@ -241,7 +245,6 @@ function renderProfile(section) {
 
   el.innerHTML = `
     <div class="hero__grid-bg"></div>
-    <canvas class="hero-canvas" id="hero-canvas" aria-hidden="true" style="position:absolute; inset:0; pointer-events:none; z-index:1;"></canvas>
     <div class="container hero__content">
       <div class="hero__badge">
         <div class="hero__badge-dot"></div>
@@ -269,7 +272,6 @@ function renderProfile(section) {
   el.querySelector('#cta-contact')?.addEventListener('click',  e => { e.preventDefault(); smoothScrollTo('contact'); });
 
   requestAnimationFrame(() => {
-    initHeroCanvas(el.querySelector('#hero-canvas'));
     initGreeting(el.querySelector('#hero-greeting'));
     initTypedText(el.querySelector('#typed-text'), titlesArr);
   });
@@ -281,26 +283,43 @@ function renderProfile(section) {
 function initHeroCanvas(canvas) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  let W, H, particles = [], raf;
+  let W = 0, H = 0, particles = [], raf;
 
   function resize() {
-    W = canvas.width  = canvas.offsetWidth;
-    H = canvas.height = canvas.offsetHeight;
+    const newW = canvas.offsetWidth || window.innerWidth;
+    const newH = canvas.offsetHeight || window.innerHeight;
+    const sizeChanged = (newW !== W || newH !== H);
+    
+    W = canvas.width  = newW;
+    H = canvas.height = newH;
+    
+    if (sizeChanged && particles.length > 0) {
+      particles.forEach(p => {
+        p.x = Math.random() * newW;
+        p.y = Math.random() * newH;
+      });
+    }
   }
 
   function makeParticle() {
     const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#6c63ff';
     return {
       x: Math.random() * W, y: Math.random() * H,
-      r: Math.random() * 2 + 0.5,
-      dx: (Math.random() - 0.5) * 0.4, dy: (Math.random() - 0.5) * 0.4,
-      alpha: Math.random() * 0.5 + 0.1, color,
+      r: Math.random() * 2 + 1, // Kích thước hạt lớn hơn (1px - 3px)
+      dx: (Math.random() - 0.5) * 0.6, dy: (Math.random() - 0.5) * 0.6, // Tốc độ di chuyển tăng nhẹ
+      alpha: Math.random() * 0.6 + 0.2, // Độ mờ rõ hơn (0.2 - 0.8)
+      color,
     };
   }
 
-  function init() { resize(); particles = Array.from({ length: 80 }, makeParticle); }
+  function init() { resize(); particles = Array.from({ length: 130 }, makeParticle); } // Tăng số lượng hạt lên 130 để bao phủ toàn trang
 
   function draw() {
+    // Tự động kiểm tra và điều chỉnh độ phân giải canvas theo kích thước hiển thị thực tế
+    if (canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+      resize();
+    }
+
     ctx.clearRect(0, 0, W, H);
     particles.forEach(p => {
       ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
@@ -309,13 +328,14 @@ function initHeroCanvas(canvas) {
       if (p.x < 0 || p.x > W) p.dx *= -1;
       if (p.y < 0 || p.y > H) p.dy *= -1;
     });
+    const maxDist = 130; // Khoảng cách kết nối xa hơn
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 100) {
-          ctx.save(); ctx.globalAlpha = (1 - dist / 100) * 0.15;
-          ctx.strokeStyle = particles[i].color; ctx.lineWidth = 0.5;
+        if (dist < maxDist) {
+          ctx.save(); ctx.globalAlpha = (1 - dist / maxDist) * 0.25; // Đường kết nối sáng rõ hơn
+          ctx.strokeStyle = particles[i].color; ctx.lineWidth = 0.6; // Nét vẽ dày hơn một chút
           ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y); ctx.stroke(); ctx.restore();
         }

@@ -1788,6 +1788,10 @@
   </div>
 </div>
 
+<!-- Supabase SDK & Config -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
@@ -3355,18 +3359,21 @@
   }
 
   // ─── Logout ───────────────────────────────────────────────────
-  function logout() {
+  async function logout() {
     if (typeof Auth !== 'undefined' && Auth.logout) {
-      Auth.logout();
+      await Auth.logout();
     } else {
       sessionStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(AUTH_REMEMBER_KEY);
+      window.location.replace('login.html');
     }
-    window.location.replace('login.html');
   }
 
   // ─── Initialize ───────────────────────────────────────────────
-  function init() {
+  async function init() {
+    if (typeof DB !== 'undefined' && DB.init) {
+      await DB.init();
+    }
     if (!requireAuth()) return;
 
     // Set user info in sidebar

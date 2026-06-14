@@ -623,7 +623,7 @@ strong { font-weight: 600; color: var(--text-primary); }
 
 /* ── Section Base Styles ──────────────────────────────────── */
 .section { padding: var(--space-4xl) 0; position: relative; }
-.section-alt { background: var(--bg-secondary); }
+.section-alt { background: color-mix(in srgb, var(--bg-secondary) 85%, transparent); }
 
 .section-header {
   text-align: center;

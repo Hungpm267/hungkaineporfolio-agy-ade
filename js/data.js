@@ -362,339 +362,270 @@ function _emptyDataForType(type) {
    DB OBJECT
    ════════════════════════════════════════════════════════════ */
 const DB = {
-  /* ── Storage Keys ──────────────────────────────────────── */
+  // Local cache for database records to keep reads synchronous
+  cache: {
+    settings: null,
+    sections: null
+  },
+
+  /* ── Storage Keys for local browser preferences ────────── */
   KEYS: {
-    SETTINGS: 'portfolio_settings',
-    SECTIONS: 'portfolio_sections',
-    USERS: 'portfolio_users',
-    SESSION: 'portfolio_session',
-    THEME: 'portfolio_theme',
-    LANG: 'portfolio_lang'
+    THEME:    'portfolio_theme',
+    LANG:     'portfolio_lang'
   },
 
-  /* ── Generic LocalStorage CRUD ─────────────────────────── */
-
   /**
-   * Get a value from localStorage and parse it from JSON.
-   * Returns null if the key does not exist or parsing fails.
-   * @param {string} key
-   * @returns {*|null}
+   * Initialize Supabase data, load settings/sections, and seed defaults if empty.
    */
-  get(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw === null) return null;
-      return JSON.parse(raw);
-    } catch (e) {
-      console.warn('[DB] get() parse error for key:', key, e);
-      return null;
+  async init() {
+    if (typeof window.supabaseClient === 'undefined') {
+      console.warn('[DB] Supabase client is not initialized. Falling back to default data.');
+      this.cache.settings = { ...DEFAULT_SETTINGS };
+      this.cache.sections = [...DEFAULT_SECTIONS];
+      return;
     }
-  },
 
-  /**
-   * Serialize a value to JSON and store it in localStorage.
-   * @param {string} key
-   * @param {*} value
-   */
-  set(key, value) {
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      // 1. Fetch settings
+      let { data: settingsData, error: settingsError } = await window.supabaseClient
+        .from('portfolio_settings')
+        .select('*')
+        .eq('id', 'main')
+        .maybeSingle();
+
+      if (!settingsData) {
+        // Record not found, seed settings
+        console.log('[DB] Seeding default settings into Supabase...');
+        const { data: newSettings, error: insertError } = await window.supabaseClient
+          .from('portfolio_settings')
+          .insert({ id: 'main', data: DEFAULT_SETTINGS })
+          .select()
+          .single();
+        
+        if (insertError) throw insertError;
+        settingsData = newSettings;
+      } else if (settingsError) {
+        throw settingsError;
+      }
+
+      this.cache.settings = settingsData.data;
+
+      // 2. Fetch sections
+      let { data: sectionsData, error: sectionsError } = await window.supabaseClient
+        .from('portfolio_sections')
+        .select('*')
+        .order('order', { ascending: true });
+
+      if (sectionsError) throw sectionsError;
+
+      if (!sectionsData || sectionsData.length === 0) {
+        // Seed sections
+        console.log('[DB] Seeding default sections into Supabase...');
+        const { error: insertError } = await window.supabaseClient
+          .from('portfolio_sections')
+          .insert(DEFAULT_SECTIONS.map(s => ({
+            id: s.id,
+            type: s.type || s.id,
+            order: s.order || 0,
+            visible: s.visible !== false,
+            data: s.data || {}
+          })));
+
+        if (insertError) throw insertError;
+
+        // Fetch again after seeding
+        const { data: refetchedSections, error: refetchError } = await window.supabaseClient
+          .from('portfolio_sections')
+          .select('*')
+          .order('order', { ascending: true });
+        
+        if (refetchError) throw refetchError;
+        sectionsData = refetchedSections;
+      }
+
+      this.cache.sections = sectionsData.map(s => ({
+        id: s.id,
+        type: s.type,
+        order: s.order,
+        visible: s.visible,
+        data: s.data
+      }));
+
+      console.log('[DB] Data loaded from Supabase successfully.');
     } catch (e) {
-      console.error('[DB] set() error for key:', key, e);
+      console.error('[DB] Error initializing Supabase database:', e);
+      // Fallback to defaults
+      this.cache.settings = { ...DEFAULT_SETTINGS };
+      this.cache.sections = [...DEFAULT_SECTIONS];
     }
   },
 
   /* ── Settings ──────────────────────────────────────────── */
-
-  /**
-   * Retrieve portfolio settings, falling back to defaults.
-   * @returns {object}
-   */
   getSettings() {
-    const stored = this.get(this.KEYS.SETTINGS);
-    if (!stored) return { ...DEFAULT_SETTINGS };
-    // Merge with defaults to handle new fields added later
-    return { ...DEFAULT_SETTINGS, ...stored };
+    return this.cache.settings || { ...DEFAULT_SETTINGS };
   },
 
-  /**
-   * Persist portfolio settings.
-   * @param {object} settings
-   */
-  saveSettings(settings) {
-    this.set(this.KEYS.SETTINGS, settings);
+  async saveSettings(settings) {
+    this.cache.settings = { ...settings };
+    if (typeof window.supabaseClient !== 'undefined') {
+      const { error } = await window.supabaseClient
+        .from('portfolio_settings')
+        .update({ data: settings })
+        .eq('id', 'main');
+      if (error) console.error('[DB] Error updating settings:', error);
+    }
   },
 
   /* ── Sections ──────────────────────────────────────────── */
-
-  /**
-   * Retrieve all sections, sorted by order, falling back to defaults.
-   * @returns {Array}
-   */
   getSections() {
-    const stored = this.get(this.KEYS.SECTIONS);
-    if (!stored || !Array.isArray(stored) || stored.length === 0) {
-      return DEFAULT_SECTIONS.slice();
+    return (this.cache.sections || []).sort((a, b) => a.order - b.order);
+  },
+
+  async saveSections(sections) {
+    this.cache.sections = [...sections];
+    if (typeof window.supabaseClient !== 'undefined') {
+      const { error } = await window.supabaseClient
+        .from('portfolio_sections')
+        .upsert(sections.map(s => ({
+          id: s.id,
+          type: s.type || s.id,
+          order: s.order,
+          visible: s.visible !== false,
+          data: s.data || {}
+        })));
+      if (error) console.error('[DB] Error saving sections:', error);
     }
-    return stored.slice().sort((a, b) => a.order - b.order);
   },
 
-  /**
-   * Persist all sections.
-   * @param {Array} sections
-   */
-  saveSections(sections) {
-    this.set(this.KEYS.SECTIONS, sections);
-  },
-
-  /**
-   * Get a single section by id.
-   * @param {string} id
-   * @returns {object|null}
-   */
   getSection(id) {
-    const sections = this.getSections();
-    return sections.find(s => s.id === id) || null;
+    return (this.cache.sections || []).find(s => s.id === id) || null;
   },
 
-  /**
-   * Update a section's data (shallow-merges top-level properties).
-   * @param {string} id - Section id
-   * @param {object} updates - Partial section object to merge
-   * @returns {boolean} true if found and updated
-   */
-  updateSection(id, updates) {
-    const sections = this.getSections();
-    const idx = sections.findIndex(s => s.id === id);
+  async updateSection(id, updates) {
+    const idx = (this.cache.sections || []).findIndex(s => s.id === id);
     if (idx === -1) {
-      console.warn('[DB] updateSection: section not found:', id);
+      console.warn('[DB] Section not found in cache:', id);
       return false;
     }
-    // Deep-merge 'data' if provided, otherwise shallow-merge
-    sections[idx] = {
-      ...sections[idx],
+
+    const current = this.cache.sections[idx];
+    const updated = {
+      ...current,
       ...updates,
-      data: updates.data !== undefined
-        ? updates.data
-        : sections[idx].data
+      data: updates.data !== undefined ? updates.data : current.data
     };
-    this.saveSections(sections);
+    this.cache.sections[idx] = updated;
+
+    if (typeof window.supabaseClient !== 'undefined') {
+      const { error } = await window.supabaseClient
+        .from('portfolio_sections')
+        .update({
+          order: updated.order,
+          visible: updated.visible !== false,
+          data: updated.data
+        })
+        .eq('id', id);
+      if (error) {
+        console.error('[DB] Error updating section:', error);
+        return false;
+      }
+    }
     return true;
   },
 
-  /**
-   * Add a new section of the given type.
-   * @param {string} type - One of the 8 known section types
-   * @returns {object} The newly created section
-   */
-  addSection(type) {
+  async addSection(type) {
     const sections = this.getSections();
     const maxOrder = sections.reduce((max, s) => Math.max(max, s.order), -1);
     const newSection = {
-      id: type + '-' + _generateId(),
+      id: type + '-' + Date.now().toString(36),
       type,
       order: maxOrder + 1,
       visible: true,
-      data: _emptyDataForType(type)
+      data: (typeof _emptyDataForType === 'function') ? _emptyDataForType(type) : {}
     };
-    sections.push(newSection);
-    this.saveSections(sections);
+
+    this.cache.sections.push(newSection);
+
+    if (typeof window.supabaseClient !== 'undefined') {
+      const { error } = await window.supabaseClient
+        .from('portfolio_sections')
+        .insert({
+          id: newSection.id,
+          type: newSection.type,
+          order: newSection.order,
+          visible: newSection.visible,
+          data: newSection.data
+        });
+      if (error) console.error('[DB] Error inserting section:', error);
+    }
+
     return newSection;
   },
 
-  /**
-   * Delete a section by id.
-   * @param {string} id
-   * @returns {boolean} true if found and deleted
-   */
-  deleteSection(id) {
-    const sections = this.getSections();
-    const filtered = sections.filter(s => s.id !== id);
-    if (filtered.length === sections.length) {
-      console.warn('[DB] deleteSection: section not found:', id);
-      return false;
+  async deleteSection(id) {
+    this.cache.sections = (this.cache.sections || []).filter(s => s.id !== id);
+
+    if (typeof window.supabaseClient !== 'undefined') {
+      const { error } = await window.supabaseClient
+        .from('portfolio_sections')
+        .delete()
+        .eq('id', id);
+      if (error) {
+        console.error('[DB] Error deleting section:', error);
+        return false;
+      }
     }
-    this.saveSections(filtered);
     return true;
   },
 
-  /**
-   * Reorder sections by providing an array of ids in the desired order.
-   * @param {string[]} orderedIds - Array of section ids in desired order
-   */
-  reorderSections(orderedIds) {
+  async reorderSections(orderedIds) {
     const sections = this.getSections();
+    const updates = [];
+
     orderedIds.forEach((id, index) => {
       const section = sections.find(s => s.id === id);
-      if (section) section.order = index;
+      if (section) {
+        section.order = index;
+        updates.push({ id, order: index });
+      }
     });
-    this.saveSections(sections);
+
+    this.cache.sections.sort((a, b) => a.order - b.order);
+
+    if (typeof window.supabaseClient !== 'undefined' && updates.length > 0) {
+      for (const update of updates) {
+        await window.supabaseClient
+          .from('portfolio_sections')
+          .update({ order: update.order })
+          .eq('id', update.id);
+      }
+    }
   },
 
-  /* ── Users ─────────────────────────────────────────────── */
-
-  /**
-   * Hash a plain-text password using btoa (base64 encoding).
-   * NOTE: This is intentionally simple — use server-side hashing in production.
-   * @param {string} password
-   * @returns {string}
-   */
-  hashPassword(password) {
-    // Double-encode with a salt prefix for minimal obfuscation
-    return btoa('pf_salt::' + password);
-  },
-
-  /**
-   * Retrieve all users, falling back to defaults.
-   * @returns {Array}
-   */
+  /* ── Stubs for secure User Management via Supabase Console ─ */
   getUsers() {
-    const stored = this.get(this.KEYS.USERS);
-    if (!stored || !Array.isArray(stored) || stored.length === 0) {
-      return DEFAULT_USERS.slice();
+    if (typeof Auth !== 'undefined' && Auth.isLoggedIn && Auth.isLoggedIn()) {
+      return [{ id: 'auth-user', username: Auth.getCurrentUser() || 'admin' }];
     }
-    return stored;
+    return [{ id: 'auth-user', username: 'admin' }];
   },
-
-  /**
-   * Persist all users.
-   * @param {Array} users
-   */
-  saveUsers(users) {
-    this.set(this.KEYS.USERS, users);
+  saveUsers() {
+    console.warn('[DB] User management is handled securely in Supabase Auth Dashboard.');
   },
-
-  /**
-   * Add a new user. Returns the new user object or null if username taken.
-   * @param {string} username
-   * @param {string} password - Plain-text password
-   * @returns {object|null}
-   */
-  addUser(username, password) {
-    const users = this.getUsers();
-    const trimmed = username.trim().toLowerCase();
-    if (!trimmed || !password) {
-      console.warn('[DB] addUser: username and password are required');
-      return null;
-    }
-    const exists = users.some(u => u.username.toLowerCase() === trimmed);
-    if (exists) {
-      console.warn('[DB] addUser: username already exists:', trimmed);
-      return null;
-    }
-    const newUser = {
-      id: _generateId(),
-      username: trimmed,
-      passwordHash: this.hashPassword(password)
-    };
-    users.push(newUser);
-    this.saveUsers(users);
-    return newUser;
+  addUser() {
+    console.warn('[DB] Client-side user creation is disabled. Please create users in Supabase Auth Console.');
+    return null;
   },
-
-  /**
-   * Delete a user by id.
-   * @param {string} id
-   * @returns {boolean} true if found and deleted
-   */
-  deleteUser(id) {
-    const users = this.getUsers();
-    // Prevent deleting the last user
-    if (users.length <= 1) {
-      console.warn('[DB] deleteUser: cannot delete the last user');
-      return false;
-    }
-    const filtered = users.filter(u => u.id !== id);
-    if (filtered.length === users.length) {
-      console.warn('[DB] deleteUser: user not found:', id);
-      return false;
-    }
-    this.saveUsers(filtered);
-    return true;
+  deleteUser() {
+    console.warn('[DB] Client-side user deletion is disabled. Please manage users in Supabase Auth Console.');
+    return false;
   },
-
-  /**
-   * Verify credentials. Returns the matching user object or null.
-   * @param {string} username
-   * @param {string} password - Plain-text password
-   * @returns {object|null}
-   */
-  verifyUser(username, password) {
-    if (!username || !password) return null;
-    const users = this.getUsers();
-    const trimmed = username.trim().toLowerCase();
-    const hash = this.hashPassword(password);
-
-    // Also support legacy DEFAULT_USERS hash format (btoa without salt)
-    const legacyHash = btoa(password);
-
-    const match = users.find(u =>
-      u.username.toLowerCase() === trimmed &&
-      (u.passwordHash === hash || u.passwordHash === legacyHash || u.password === password)
-    );
-    return match || null;
+  verifyUser() {
+    return null;
   },
-
-  /**
-   * Update a user's password.
-   * @param {string} id
-   * @param {string} newPassword - Plain-text new password
-   * @returns {boolean}
-   */
-  updateUserPassword(id, newPassword) {
-    const users = this.getUsers();
-    const user = users.find(u => u.id === id);
-    if (!user) {
-      console.warn('[DB] updateUserPassword: user not found:', id);
-      return false;
-    }
-    user.passwordHash = this.hashPassword(newPassword);
-    this.saveUsers(users);
-    return true;
-  },
-
-  /* ── Session ────────────────────────────────────────────── */
-
-  /**
-   * Get the current session username from sessionStorage (or localStorage if remember-me was used).
-   * @returns {string|null}
-   */
-  getSession() {
-    let session = sessionStorage.getItem(this.KEYS.SESSION);
-    if (!session) {
-      session = localStorage.getItem(this.KEYS.SESSION);
-    }
-    return session;
-  },
-
-  /**
-   * Set the current session to a username.
-   * @param {string} username
-   * @param {boolean} remember - Persist session to localStorage
-   */
-  setSession(username, remember = false) {
-    sessionStorage.setItem(this.KEYS.SESSION, username);
-    if (remember) {
-      localStorage.setItem(this.KEYS.SESSION, username);
-    } else {
-      localStorage.removeItem(this.KEYS.SESSION);
-    }
-  },
-
-  /**
-   * Clear the current session (logout).
-   */
-  clearSession() {
-    sessionStorage.removeItem(this.KEYS.SESSION);
-    localStorage.removeItem(this.KEYS.SESSION);
-  },
-
-  /**
-   * Check whether a user is currently logged in.
-   * @returns {boolean}
-   */
-  isLoggedIn() {
-    return !!this.getSession();
+  updateUserPassword() {
+    console.warn('[DB] Password change must be triggered via Supabase Auth Console.');
+    return false;
   },
 
   /* ── Theme ──────────────────────────────────────────────── */

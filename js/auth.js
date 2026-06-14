@@ -1,39 +1,21 @@
 /* ============================================================
    AUTH MODULE - auth.js
-   Portfolio Website Authentication
-   ============================================================
-   Depends on: data.js (window.DB must be available)
+   Portfolio Website Authentication using Supabase Auth
    ============================================================ */
 
 const Auth = {
   /* ── Configuration ─────────────────────────────────────── */
-
-  /** Path to the login page (relative to site root) */
   LOGIN_PAGE: 'login.html',
-
-  /** Path to the admin dashboard (relative to site root) */
   ADMIN_PAGE: 'admin.html',
 
   /* ── Internal Helpers ──────────────────────────────────── */
-
-  /**
-   * Resolve the correct path to the login page regardless of
-   * current page depth in the directory structure.
-   * @returns {string}
-   */
   _getLoginUrl() {
-    // Try to detect relative depth from the current URL
-    // For flat (root-level) sites this just returns 'login.html'
     const path = window.location.pathname;
     const depth = (path.match(/\//g) || []).length - 1;
     const prefix = depth > 0 ? '../'.repeat(depth) : '';
     return prefix + this.LOGIN_PAGE;
   },
 
-  /**
-   * Resolve the correct path to the admin page.
-   * @returns {string}
-   */
   _getAdminUrl() {
     const path = window.location.pathname;
     const depth = (path.match(/\//g) || []).length - 1;
@@ -41,154 +23,122 @@ const Auth = {
     return prefix + this.ADMIN_PAGE;
   },
 
-  /**
-   * Check whether the current page is the login page itself.
-   * @returns {boolean}
-   */
   _isLoginPage() {
     return window.location.pathname.includes(this.LOGIN_PAGE);
   },
 
-  /* ── Public API ────────────────────────────────────────── */
-
   /**
-   * Initialize auth on protected (admin) pages.
-   *
-   * Call this at the top of any admin script. If the user is not
-   * logged in they will be immediately redirected to login.html.
-   *
-   * Usage:
-   *   <script src="js/data.js"></script>
-   *   <script src="js/auth.js"></script>
-   *   <script> Auth.init(); </script>
+   * Helper to get local session synchronously from localStorage.
+   * Supabase stores session under the key `sb-[project-ref]-auth-token`.
    */
-  init() {
-    if (!window.DB) {
-      console.error('[Auth] init(): window.DB is not available. Make sure data.js is loaded first.');
-      return;
+  _getLocalSession() {
+    if (typeof localStorage === 'undefined') return null;
+    const keys = Object.keys(localStorage);
+    const authKey = keys.find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (!authKey) return null;
+    try {
+      return JSON.parse(localStorage.getItem(authKey));
+    } catch (e) {
+      return null;
     }
+  },
+
+  /* ── Public API ────────────────────────────────────────── */
+  init() {
     this.requireAuth();
   },
 
   /**
-   * Attempt to log in with the given credentials.
-   *
-   * @param {string} username - The username to attempt login with
-   * @param {string} password - The plain-text password
-   * @param {boolean} remember - The remember-me state
-   * @returns {boolean} true if credentials are valid, false otherwise
+   * Attempt to log in with Supabase Auth.
+   * Note: This is now asynchronous.
    */
-  login(username, password, remember = false) {
-    if (!window.DB) {
-      console.error('[Auth] login(): window.DB is not available.');
+  async login(email, password, remember = false) {
+    if (typeof window.supabaseClient === 'undefined') {
+      console.error('[Auth] Supabase client is not available.');
       return false;
     }
 
-    if (!username || !password) {
-      return false;
-    }
+    try {
+      const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
+      });
 
-    const user = DB.verifyUser(username.trim(), password);
+      if (error) {
+        console.error('[Auth] Login error:', error.message);
+        return false;
+      }
 
-    if (user) {
-      DB.setSession(user.username, remember);
+      console.log('[Auth] Login successful.');
       return true;
+    } catch (err) {
+      console.error('[Auth] Unexpected login error:', err);
+      return false;
     }
-
-    return false;
   },
 
   /**
-   * Log out the current user.
-   *
-   * Clears the session and redirects to the login page.
+   * Log out.
    */
-  logout() {
-    if (window.DB) {
-      DB.clearSession();
+  async logout() {
+    if (typeof window.supabaseClient !== 'undefined') {
+      await window.supabaseClient.auth.signOut();
     }
     window.location.href = this._getLoginUrl();
   },
 
   /**
-   * Check whether a session is active.
-   *
-   * If no active session is found the user is redirected to login.html.
-   * Does nothing if the current page is already the login page.
+   * Redirect if not logged in.
    */
   requireAuth() {
     if (this._isLoginPage()) return;
 
-    if (!window.DB) {
-      console.error('[Auth] requireAuth(): window.DB is not available.');
-      window.location.href = this._getLoginUrl();
-      return;
-    }
-
     if (!this.isLoggedIn()) {
-      // Preserve intended destination so login page can redirect back
       const intended = encodeURIComponent(window.location.href);
       window.location.href = this._getLoginUrl() + '?next=' + intended;
     }
   },
 
   /**
-   * Check if a session is currently active.
-   * @returns {boolean}
+   * Check if a session is currently active (synchronously via localStorage).
    */
   isLoggedIn() {
-    if (!window.DB) return false;
-    return DB.isLoggedIn();
+    return !!this._getLocalSession();
   },
 
   /**
-   * Get the currently logged-in username, or null if not authenticated.
-   * @returns {string|null}
+   * Get the currently logged-in username (email).
    */
   getCurrentUser() {
-    if (!window.DB) return null;
-    return DB.getSession();
+    const session = this._getLocalSession();
+    return session?.user?.email || null;
   },
 
-  /**
-   * Alias for getCurrentUser to match admin.html expectations.
-   * @returns {string|null}
-   */
   currentUser() {
     return this.getCurrentUser();
   },
 
   /**
    * Handle the login form submission from login.html.
-   *
-   * Attempts login and either:
-   *   - Redirects to the 'next' query parameter URL, or
-   *   - Redirects to admin.html on success
-   *   - Returns false on failure (caller should show an error)
-   *
-   * @param {string} username
-   * @param {string} password
-   * @returns {boolean} true on success, false on failure
+   * Note: This is now async.
    */
-  handleLoginSubmit(username, password) {
-    const success = this.login(username, password);
+  async handleLoginSubmit(username, password) {
+    const success = await this.login(username, password);
 
     if (success) {
-      // Check for a 'next' redirect parameter
       const params = new URLSearchParams(window.location.search);
-      const next   = params.get('next');
+      const next = params.get('next');
 
       if (next) {
         try {
           const decoded = decodeURIComponent(next);
-          // Safety check: only redirect to same origin
           const url = new URL(decoded, window.location.origin);
           if (url.origin === window.location.origin) {
             window.location.href = url.href;
             return true;
           }
         } catch (e) {
-          // Fall through to default redirect
+          // Fall through
         }
       }
 
@@ -199,14 +149,8 @@ const Auth = {
     return false;
   },
 
-  /**
-   * If the user is already logged in and visits the login page,
-   * redirect them straight to the admin panel.
-   *
-   * Call this inside login.html's script.
-   */
   redirectIfLoggedIn() {
-    if (window.DB && DB.isLoggedIn()) {
+    if (this.isLoggedIn()) {
       window.location.href = this._getAdminUrl();
     }
   }

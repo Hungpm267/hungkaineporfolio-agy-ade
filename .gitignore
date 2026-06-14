@@ -1,0 +1,6 @@
+# Local Supabase config containing sensitive keys
+js/supabase-config.js
+
+# OS files
+.DS_Store
+Thumbs.db

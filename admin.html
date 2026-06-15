@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
   <style>
     /* ═══════════════════════════════════════════════════════════════
        ADMIN DASHBOARD STYLES
@@ -545,6 +546,15 @@
       transition: border-color var(--transition);
     }
     .item-card:hover { border-color: rgba(139,92,246,0.25); }
+    .item-card.dragging {
+      opacity: 0.5;
+      border-style: dashed;
+      border-color: var(--accent);
+    }
+    .item-card.drag-over {
+      background: rgba(139,92,246,0.08);
+      border-color: var(--accent);
+    }
 
     .item-thumb {
       width: 48px; height: 48px;
@@ -646,9 +656,13 @@
       margin-bottom: 0.5rem;
     }
     .skill-item .form-input { flex: 1; }
-    .skill-level-wrap { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
-    .skill-slider { width: 100px; accent-color: var(--accent); cursor: pointer; }
-    .skill-level-val { font-size: 0.75rem; color: var(--accent-light); font-weight: 600; width: 30px; text-align: right; }
+    .skill-icon-upload-wrapper {
+      transition: border-color var(--transition-normal), background var(--transition-normal);
+    }
+    .skill-icon-upload-wrapper:hover {
+      border-color: var(--accent) !important;
+      background: var(--bg-elevated) !important;
+    }
 
     /* ─── Blog Toolbar ──────────────────────────────────────────── */
     .editor-toolbar {
@@ -1619,7 +1633,13 @@
               </div>
               <div class="form-row">
                 <label>Favicon URL</label>
-                <input type="url" class="form-input" id="settingsFavicon" placeholder="https://..." />
+                <div style="display:flex; gap:0.5rem;">
+                  <input type="url" class="form-input" id="settingsFavicon" placeholder="https://..." style="flex:1;" />
+                  <label class="btn btn-secondary btn-icon" style="cursor:pointer; flex-shrink:0;" title="Upload Favicon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <input type="file" id="settingsFaviconFile" accept="image/*" style="display:none;" />
+                  </label>
+                </div>
               </div>
             </div>
             <div class="form-row" style="margin-top:0.75rem;">
@@ -1865,6 +1885,24 @@
     return obj[lang] || '';
   }
 
+  function richEditorHTML(id, content, minHeight) {
+    if (!minHeight) minHeight = '100px';
+    function btn(label, cmd, val) {
+      return '<button type="button" class="toolbar-btn" data-cmd="' + cmd + '" data-val="' + (val||'') + '" style="padding: 2px 6px; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-1); border-radius: 4px;">' + label + '</button>';
+    }
+    return '<div class="rich-editor-container" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg-surface); margin-top: 4px;">' +
+      '<div class="editor-toolbar" style="display: flex; gap: 4px; padding: 6px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); flex-wrap: wrap;">' +
+        btn('<b>B</b>', 'bold') +
+        btn('<i>I</i>', 'italic') +
+        btn('<u>U</u>', 'underline') +
+        btn('• List', 'insertUnorderedList') +
+        btn('1. List', 'insertOrderedList') +
+        btn('Link', 'createLink') +
+      '</div>' +
+      '<div class="form-input editor-textarea" id="' + id + '" contenteditable="true" style="min-height:' + minHeight + '; border: none; outline: none; padding: 8px; line-height: 1.5; overflow-y: auto; background: transparent; color: var(--text-1);">' + (content || '') + '</div>' +
+    '</div>';
+  }
+
   function get(key, defaultVal) {
     if (typeof DB === 'undefined') {
       var data = getData();
@@ -1970,6 +2008,7 @@
         var skills = (group.skills || group.items || []).map(function(s) {
           return {
             name:  t_admin(s.name, 'vi') || t_admin(s.name, 'en') || s.name || '',
+            icon:  s.icon || '',
             level: s.level || 50
           };
         });
@@ -2170,6 +2209,7 @@
             return {
               id:    'sk-' + idx,
               name:  s.name,
+              icon:  s.icon || '',
               level: s.level
             };
           })
@@ -2375,6 +2415,21 @@
     modalSaveCallback = onSave;
     document.getElementById('modalOverlay').classList.add('open');
     initLangTabs(document.getElementById('modalBody'));
+    
+    // Wire rich editor toolbar buttons inside the modal automatically
+    document.getElementById('modalBody').querySelectorAll('.toolbar-btn').forEach(function(btn) {
+      btn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var cmd = this.dataset.cmd;
+        var val = this.dataset.val;
+        if (cmd === 'createLink') {
+          val = prompt('Enter URL:');
+          if (!val) return;
+        }
+        document.execCommand(cmd, false, val || null);
+      });
+    });
+
     // Focus first input
     var first = document.getElementById('modalBody').querySelector('input, textarea, select');
     if (first) setTimeout(function() { first.focus(); }, 100);
@@ -2589,14 +2644,22 @@
     var html = '<div class="lang-tabs"><button class="lang-tab active" data-tab="vi" data-group="proj-modal">VI</button><button class="lang-tab" data-tab="en" data-group="proj-modal">EN</button></div>' +
       '<div class="lang-pane active" data-pane="vi" data-group="proj-modal">' +
         '<div class="form-row"><label>Project Name (Vietnamese)</label><input type="text" class="form-input" id="mProjNameVi" value="' + (proj.nameVi||'') + '" /></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Description (Vietnamese)</label><textarea class="form-textarea" id="mProjDescVi" rows="3">' + (proj.descVi||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Description (Vietnamese)</label>' + richEditorHTML('mProjDescVi', proj.descVi, '120px') + '</div>' +
       '</div>' +
       '<div class="lang-pane" data-pane="en" data-group="proj-modal">' +
         '<div class="form-row"><label>Project Name (English)</label><input type="text" class="form-input" id="mProjNameEn" value="' + (proj.nameEn||'') + '" /></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Description (English)</label><textarea class="form-textarea" id="mProjDescEn" rows="3">' + (proj.descEn||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Description (English)</label>' + richEditorHTML('mProjDescEn', proj.descEn, '120px') + '</div>' +
       '</div>' +
       '<div class="divider"></div>' +
-      '<div class="form-row"><label>Image URL</label><input type="url" class="form-input" id="mProjImage" value="' + (proj.image||'') + '" placeholder="https://..." /></div>' +
+      '<div class="form-row"><label>Image URL</label>' +
+        '<div style="display:flex; gap:0.5rem;">' +
+          '<input type="url" class="form-input" id="mProjImage" value="' + (proj.image||'') + '" placeholder="https://..." style="flex:1;" />' +
+          '<label class="btn btn-secondary btn-icon" style="cursor:pointer; flex-shrink:0;" title="Upload Image">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+            '<input type="file" id="mProjImageFile" accept="image/*" style="display:none;" />' +
+          '</label>' +
+        '</div>' +
+      '</div>' +
       '<div class="form-cols form-cols-2" style="margin-top:.75rem;">' +
         '<div class="form-row"><label>Demo URL</label><input type="url" class="form-input" id="mProjDemo" value="' + (proj.demoUrl||'') + '" placeholder="https://..." /></div>' +
         '<div class="form-row"><label>Repository URL</label><input type="url" class="form-input" id="mProjRepo" value="' + (proj.repoUrl||'') + '" placeholder="https://github.com/..." /></div>' +
@@ -2610,8 +2673,8 @@
     openModal((isNew ? 'Add' : 'Edit') + ' Project', html, function() {
       proj.nameVi   = document.getElementById('mProjNameVi').value.trim();
       proj.nameEn   = document.getElementById('mProjNameEn').value.trim();
-      proj.descVi   = document.getElementById('mProjDescVi').value.trim();
-      proj.descEn   = document.getElementById('mProjDescEn').value.trim();
+      proj.descVi   = document.getElementById('mProjDescVi').innerHTML;
+      proj.descEn   = document.getElementById('mProjDescEn').innerHTML;
       proj.image    = document.getElementById('mProjImage').value.trim();
       proj.demoUrl  = document.getElementById('mProjDemo').value.trim();
       proj.repoUrl  = document.getElementById('mProjRepo').value.trim();
@@ -2630,6 +2693,25 @@
       closeModal();
       showToast('Project ' + (isNew ? 'added' : 'updated') + '!', 'success');
     });
+
+    // Wire file upload
+    setTimeout(function() {
+      var fileInput = document.getElementById('mProjImageFile');
+      if (fileInput) {
+        fileInput.addEventListener('change', function() {
+          var file = this.files[0];
+          if (!file) return;
+          if (file.size > 3 * 1024 * 1024) {
+            showToast('Image is over 3MB. It will be stored as a data URL which may slow down the page. Consider using a URL instead.', 'info');
+          }
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            document.getElementById('mProjImage').value = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }, 100);
   }
 
   function deleteProject(id) {
@@ -2661,14 +2743,62 @@
     items.forEach(function(item) {
       var card = document.createElement('div');
       card.className = 'item-card';
+      card.draggable = true;
+      card.dataset.id = item.id;
       var period = item.startDate + ' – ' + (item.current ? 'Present' : (item.endDate || ''));
       card.innerHTML =
+        '<span class="drag-handle" style="cursor: grab; margin-right: 0.25rem; color: var(--text-3); display: flex; align-items: center; justify-content: center; width: 20px; height: 20px;">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round">' +
+            '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>' +
+            '<circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>' +
+          '</svg>' +
+        '</span>' +
         '<div class="item-thumb">' + (item.logo ? '<img src="' + item.logo + '" alt="" onerror="this.style.display=\'none\'" />' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>') + '</div>' +
         '<div class="item-info"><div class="item-name">' + (item.roleEn || item.roleVi || 'Role') + ' @ ' + (item.companyEn || item.companyVi || 'Company') + '</div><div class="item-meta">' + period + '</div></div>' +
         '<div class="item-actions">' +
           '<button class="btn btn-ghost btn-icon" data-edit="' + item.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
           '<button class="btn btn-danger btn-icon" data-delete="' + item.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>' +
         '</div>';
+
+      card.addEventListener('dragstart', function(e) {
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(function() { card.classList.add('dragging'); }, 0);
+      });
+      card.addEventListener('dragend', function() { this.classList.remove('dragging'); });
+      card.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        listEl.querySelectorAll('.item-card').forEach(function(el){ el.classList.remove('drag-over'); });
+        this.classList.add('drag-over');
+        return false;
+      });
+      card.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+      card.addEventListener('drop', function(e) {
+        e.stopPropagation();
+        if (dragSrcEl !== this) {
+          var parent = this.parentNode;
+          var srcIdx = Array.from(parent.children).indexOf(dragSrcEl);
+          var tgtIdx = Array.from(parent.children).indexOf(this);
+          if (srcIdx < tgtIdx) {
+            parent.insertBefore(dragSrcEl, this.nextSibling);
+          } else {
+            parent.insertBefore(dragSrcEl, this);
+          }
+          var newOrderIds = Array.from(parent.children).map(function(child) {
+            return child.dataset.id;
+          });
+          var currentItems = get('experience', []);
+          var reorderedItems = newOrderIds.map(function(id) {
+            return currentItems.find(function(i) { return i.id === id; });
+          }).filter(Boolean);
+          set('experience', reorderedItems);
+          showToast('Experience order updated!', 'success');
+        }
+        this.classList.remove('drag-over');
+        return false;
+      });
+
       card.querySelector('[data-edit]').addEventListener('click', function(){ openExperienceModal(this.dataset.edit); });
       card.querySelector('[data-delete]').addEventListener('click', function(){ deleteExperience(this.dataset.delete); });
       listEl.appendChild(card);
@@ -2684,11 +2814,11 @@
     var html = '<div class="lang-tabs"><button class="lang-tab active" data-tab="vi" data-group="exp-modal">VI</button><button class="lang-tab" data-tab="en" data-group="exp-modal">EN</button></div>' +
       '<div class="lang-pane active" data-pane="vi" data-group="exp-modal">' +
         '<div class="form-cols form-cols-2"><div class="form-row"><label>Company (Vietnamese)</label><input type="text" class="form-input" id="mExpCompanyVi" value="' + (item.companyVi||'') + '" /></div><div class="form-row"><label>Role (Vietnamese)</label><input type="text" class="form-input" id="mExpRoleVi" value="' + (item.roleVi||'') + '" /></div></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Description (Vietnamese)</label><textarea class="form-textarea" id="mExpDescVi" rows="3">' + (item.descVi||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Description (Vietnamese)</label>' + richEditorHTML('mExpDescVi', item.descVi, '120px') + '</div>' +
       '</div>' +
       '<div class="lang-pane" data-pane="en" data-group="exp-modal">' +
         '<div class="form-cols form-cols-2"><div class="form-row"><label>Company (English)</label><input type="text" class="form-input" id="mExpCompanyEn" value="' + (item.companyEn||'') + '" /></div><div class="form-row"><label>Role (English)</label><input type="text" class="form-input" id="mExpRoleEn" value="' + (item.roleEn||'') + '" /></div></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Description (English)</label><textarea class="form-textarea" id="mExpDescEn" rows="3">' + (item.descEn||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Description (English)</label>' + richEditorHTML('mExpDescEn', item.descEn, '120px') + '</div>' +
       '</div>' +
       '<div class="divider"></div>' +
       '<div class="form-row"><label>Company Logo URL</label><input type="url" class="form-input" id="mExpLogo" value="' + (item.logo||'') + '" placeholder="https://..." /></div>' +
@@ -2703,8 +2833,8 @@
       item.companyEn = document.getElementById('mExpCompanyEn').value.trim();
       item.roleVi    = document.getElementById('mExpRoleVi').value.trim();
       item.roleEn    = document.getElementById('mExpRoleEn').value.trim();
-      item.descVi    = document.getElementById('mExpDescVi').value.trim();
-      item.descEn    = document.getElementById('mExpDescEn').value.trim();
+      item.descVi    = document.getElementById('mExpDescVi').innerHTML;
+      item.descEn    = document.getElementById('mExpDescEn').innerHTML;
       item.logo      = document.getElementById('mExpLogo').value.trim();
       item.startDate = document.getElementById('mExpStart').value;
       item.endDate   = document.getElementById('mExpEnd').value;
@@ -2770,11 +2900,11 @@
     var html = '<div class="lang-tabs"><button class="lang-tab active" data-tab="vi" data-group="edu-modal">VI</button><button class="lang-tab" data-tab="en" data-group="edu-modal">EN</button></div>' +
       '<div class="lang-pane active" data-pane="vi" data-group="edu-modal">' +
         '<div class="form-cols form-cols-2"><div class="form-row"><label>School (Vietnamese)</label><input type="text" class="form-input" id="mEduSchoolVi" value="' + (item.schoolVi||'') + '" /></div><div class="form-row"><label>Major (Vietnamese)</label><input type="text" class="form-input" id="mEduMajorVi" value="' + (item.majorVi||'') + '" /></div></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Description (Vietnamese)</label><textarea class="form-textarea" id="mEduDescVi" rows="2">' + (item.descVi||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Description (Vietnamese)</label>' + richEditorHTML('mEduDescVi', item.descVi, '100px') + '</div>' +
       '</div>' +
       '<div class="lang-pane" data-pane="en" data-group="edu-modal">' +
         '<div class="form-cols form-cols-2"><div class="form-row"><label>School (English)</label><input type="text" class="form-input" id="mEduSchoolEn" value="' + (item.schoolEn||'') + '" /></div><div class="form-row"><label>Major (English)</label><input type="text" class="form-input" id="mEduMajorEn" value="' + (item.majorEn||'') + '" /></div></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Description (English)</label><textarea class="form-textarea" id="mEduDescEn" rows="2">' + (item.descEn||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Description (English)</label>' + richEditorHTML('mEduDescEn', item.descEn, '100px') + '</div>' +
       '</div>' +
       '<div class="divider"></div>' +
       '<div class="form-row"><label>School Logo URL</label><input type="url" class="form-input" id="mEduLogo" value="' + (item.logo||'') + '" placeholder="https://..." /></div>' +
@@ -2788,8 +2918,8 @@
       item.schoolEn = document.getElementById('mEduSchoolEn').value.trim();
       item.majorVi  = document.getElementById('mEduMajorVi').value.trim();
       item.majorEn  = document.getElementById('mEduMajorEn').value.trim();
-      item.descVi   = document.getElementById('mEduDescVi').value.trim();
-      item.descEn   = document.getElementById('mEduDescEn').value.trim();
+      item.descVi   = document.getElementById('mEduDescVi').innerHTML;
+      item.descEn   = document.getElementById('mEduDescEn').innerHTML;
       item.logo     = document.getElementById('mEduLogo').value.trim();
       item.startDate= document.getElementById('mEduStart').value;
       item.endDate  = document.getElementById('mEduEnd').value;
@@ -2826,12 +2956,16 @@
       item.dataset.gid = group.id;
 
       var skillsHTML = (group.skills || []).map(function(skill, si) {
+        var hasIcon = !!skill.icon;
+        var iconSrc = hasIcon ? skill.icon : '';
         return '<div class="skill-item" data-si="' + si + '">' +
-          '<input type="text" class="form-input skill-name" value="' + (skill.name||'') + '" placeholder="Skill name" />' +
-          '<div class="skill-level-wrap">' +
-            '<input type="range" class="skill-slider" min="0" max="100" value="' + (skill.level||50) + '" />' +
-            '<span class="skill-level-val">' + (skill.level||50) + '%</span>' +
+          '<div class="skill-icon-upload-wrapper" style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-surface-elevated); border: 1px dashed var(--border); border-radius: 6px; cursor: pointer; overflow: hidden;" title="Upload custom icon">' +
+            '<img class="skill-icon-preview" src="' + iconSrc + '" style="width: 100%; height: 100%; object-fit: contain; display: ' + (hasIcon ? 'block' : 'none') + ';" />' +
+            '<svg class="skill-icon-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); display: ' + (hasIcon ? 'none' : 'block') + ';"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+            '<input type="file" class="skill-icon-file-input" accept="image/*" style="display: none;" />' +
           '</div>' +
+          '<input type="hidden" class="skill-icon-data" value="' + iconSrc + '" />' +
+          '<input type="text" class="form-input skill-name" value="' + (skill.name||'') + '" placeholder="Skill name" />' +
           '<button class="btn btn-danger btn-icon del-skill" title="Remove skill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
         '</div>';
       }).join('');
@@ -2867,8 +3001,14 @@
         var list = item.querySelector('.skill-items-list');
         var div = document.createElement('div');
         div.className = 'skill-item';
-        div.innerHTML = '<input type="text" class="form-input skill-name" placeholder="Skill name" />' +
-          '<div class="skill-level-wrap"><input type="range" class="skill-slider" min="0" max="100" value="50" /><span class="skill-level-val">50%</span></div>' +
+        div.innerHTML =
+          '<div class="skill-icon-upload-wrapper" style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-surface-elevated); border: 1px dashed var(--border); border-radius: 6px; cursor: pointer; overflow: hidden;" title="Upload custom icon">' +
+            '<img class="skill-icon-preview" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;" />' +
+            '<svg class="skill-icon-placeholder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); display: block;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+            '<input type="file" class="skill-icon-file-input" accept="image/*" style="display: none;" />' +
+          '</div>' +
+          '<input type="hidden" class="skill-icon-data" value="" />' +
+          '<input type="text" class="form-input skill-name" placeholder="Skill name" />' +
           '<button class="btn btn-danger btn-icon del-skill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
         wireSkillItem(div);
         list.appendChild(div);
@@ -2880,11 +3020,39 @@
   }
 
   function wireSkillItem(div) {
-    var slider = div.querySelector('.skill-slider');
-    var valEl  = div.querySelector('.skill-level-val');
-    if (slider && valEl) slider.addEventListener('input', function() { valEl.textContent = this.value + '%'; });
     var delBtn = div.querySelector('.del-skill');
     if (delBtn) delBtn.addEventListener('click', function() { div.remove(); });
+
+    var uploadWrapper = div.querySelector('.skill-icon-upload-wrapper');
+    var fileInput = div.querySelector('.skill-icon-file-input');
+    var previewImg = div.querySelector('.skill-icon-preview');
+    var placeholderSvg = div.querySelector('.skill-icon-placeholder');
+    var hiddenInput = div.querySelector('.skill-icon-data');
+
+    if (uploadWrapper && fileInput) {
+      uploadWrapper.addEventListener('click', function(e) {
+        if (e.target !== fileInput) {
+          fileInput.click();
+        }
+      });
+
+      fileInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        if (file.size > 1.5 * 1024 * 1024) {
+          showToast('Image is over 1.5MB. Storing larger base64 images can cause slower save times.', 'info');
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var base64 = e.target.result;
+          previewImg.src = base64;
+          previewImg.style.display = 'block';
+          placeholderSvg.style.display = 'none';
+          hiddenInput.value = base64;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   }
 
   function saveSkills() {
@@ -2895,8 +3063,8 @@
       var skills = [];
       item.querySelectorAll('.skill-item').forEach(function(s) {
         var name  = s.querySelector('.skill-name').value.trim();
-        var level = parseInt(s.querySelector('.skill-slider').value, 10);
-        if (name) skills.push({ name: name, level: level });
+        var icon  = s.querySelector('.skill-icon-data').value.trim();
+        if (name) skills.push({ name: name, icon: icon, level: 100 });
       });
       if (nameVi || nameEn) {
         groups.push({ id: item.dataset.gid || uid(), nameVi: nameVi, nameEn: nameEn, skills: skills });
@@ -2968,7 +3136,15 @@
       '</div>' +
       '<div class="divider"></div>' +
       '<div class="form-cols form-cols-2">' +
-        '<div class="form-row"><label>Cover Image URL</label><input type="url" class="form-input" id="mPostCover" value="' + (post.cover||'') + '" placeholder="https://..." /></div>' +
+        '<div class="form-row"><label>Cover Image URL</label>' +
+          '<div style="display:flex; gap:0.5rem;">' +
+            '<input type="url" class="form-input" id="mPostCover" value="' + (post.cover||'') + '" placeholder="https://..." style="flex:1;" />' +
+            '<label class="btn btn-secondary btn-icon" style="cursor:pointer; flex-shrink:0;" title="Upload Image">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+              '<input type="file" id="mPostCoverFile" accept="image/*" style="display:none;" />' +
+            '</label>' +
+          '</div>' +
+        '</div>' +
         '<div class="form-row"><label>Published Date</label><input type="date" class="form-input" id="mPostDate" value="' + (post.publishedDate||'') + '" /></div>' +
       '</div>' +
       '<div class="form-row" style="margin-top:.75rem;"><label>Tags (comma separated)</label><input type="text" class="form-input" id="mPostTags" value="' + (post.tags||[]).join(', ') + '" /></div>';
@@ -2993,20 +3169,23 @@
       showToast('Post ' + (isNew ? 'created' : 'updated') + '!', 'success');
     });
 
-    // Wire toolbar buttons
+    // Wire file upload and checkboxes
     setTimeout(function() {
-      document.querySelectorAll('.toolbar-btn').forEach(function(btn) {
-        btn.addEventListener('mousedown', function(e) {
-          e.preventDefault();
-          var cmd = this.dataset.cmd;
-          var val = this.dataset.val;
-          if (cmd === 'createLink') {
-            val = prompt('Enter URL:');
-            if (!val) return;
+      var coverFileInput = document.getElementById('mPostCoverFile');
+      if (coverFileInput) {
+        coverFileInput.addEventListener('change', function() {
+          var file = this.files[0];
+          if (!file) return;
+          if (file.size > 3 * 1024 * 1024) {
+            showToast('Image is over 3MB. It will be stored as a data URL which may slow down the page. Consider using a URL instead.', 'info');
           }
-          document.execCommand(cmd, false, val || null);
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            document.getElementById('mPostCover').value = e.target.result;
+          };
+          reader.readAsDataURL(file);
         });
-      });
+      }
     }, 100);
   }
 
@@ -3050,15 +3229,23 @@
     if (!item) item = { id: uid(), authorName:'', roleVi:'', roleEn:'', companyVi:'', companyEn:'', contentVi:'', contentEn:'', avatar:'' };
 
     var html = '<div class="form-row"><label>Author Name</label><input type="text" class="form-input" id="mTestAuthor" value="' + (item.authorName||'') + '" /></div>' +
-      '<div class="form-row" style="margin-top:.75rem;"><label>Avatar URL</label><input type="url" class="form-input" id="mTestAvatar" value="' + (item.avatar||'') + '" placeholder="https://..." /></div>' +
+      '<div class="form-row" style="margin-top:.75rem;"><label>Avatar URL</label>' +
+        '<div style="display:flex; gap:0.5rem;">' +
+          '<input type="url" class="form-input" id="mTestAvatar" value="' + (item.avatar||'') + '" placeholder="https://..." style="flex:1;" />' +
+          '<label class="btn btn-secondary btn-icon" style="cursor:pointer; flex-shrink:0;" title="Upload Avatar">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+            '<input type="file" id="mTestAvatarFile" accept="image/*" style="display:none;" />' +
+          '</label>' +
+        '</div>' +
+      '</div>' +
       '<div class="lang-tabs" style="margin-top:.75rem;"><button class="lang-tab active" data-tab="vi" data-group="test-modal">VI</button><button class="lang-tab" data-tab="en" data-group="test-modal">EN</button></div>' +
       '<div class="lang-pane active" data-pane="vi" data-group="test-modal">' +
         '<div class="form-cols form-cols-2"><div class="form-row"><label>Role (Vietnamese)</label><input type="text" class="form-input" id="mTestRoleVi" value="' + (item.roleVi||'') + '" /></div><div class="form-row"><label>Company (Vietnamese)</label><input type="text" class="form-input" id="mTestCompanyVi" value="' + (item.companyVi||'') + '" /></div></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Testimonial Content (Vietnamese)</label><textarea class="form-textarea" id="mTestContentVi" rows="3">' + (item.contentVi||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Testimonial Content (Vietnamese)</label>' + richEditorHTML('mTestContentVi', item.contentVi, '100px') + '</div>' +
       '</div>' +
       '<div class="lang-pane" data-pane="en" data-group="test-modal">' +
         '<div class="form-cols form-cols-2"><div class="form-row"><label>Role (English)</label><input type="text" class="form-input" id="mTestRoleEn" value="' + (item.roleEn||'') + '" /></div><div class="form-row"><label>Company (English)</label><input type="text" class="form-input" id="mTestCompanyEn" value="' + (item.companyEn||'') + '" /></div></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Testimonial Content (English)</label><textarea class="form-textarea" id="mTestContentEn" rows="3">' + (item.contentEn||'') + '</textarea></div>' +
+        '<div class="form-row" style="margin-top:.75rem;"><label>Testimonial Content (English)</label>' + richEditorHTML('mTestContentEn', item.contentEn, '100px') + '</div>' +
       '</div>';
 
     openModal((isNew ? 'Add' : 'Edit') + ' Testimonial', html, function() {
@@ -3068,8 +3255,8 @@
       item.roleEn      = document.getElementById('mTestRoleEn').value.trim();
       item.companyVi   = document.getElementById('mTestCompanyVi').value.trim();
       item.companyEn   = document.getElementById('mTestCompanyEn').value.trim();
-      item.contentVi   = document.getElementById('mTestContentVi').value.trim();
-      item.contentEn   = document.getElementById('mTestContentEn').value.trim();
+      item.contentVi   = document.getElementById('mTestContentVi').innerHTML;
+      item.contentEn   = document.getElementById('mTestContentEn').innerHTML;
       if (isNew) { items.push(item); } else {
         var idx = items.findIndex(function(i){ return i.id === item.id; });
         if (idx !== -1) items[idx] = item;
@@ -3080,6 +3267,25 @@
       closeModal();
       showToast('Testimonial ' + (isNew ? 'added' : 'updated') + '!', 'success');
     });
+
+    // Wire file upload
+    setTimeout(function() {
+      var fileInput = document.getElementById('mTestAvatarFile');
+      if (fileInput) {
+        fileInput.addEventListener('change', function() {
+          var file = this.files[0];
+          if (!file) return;
+          if (file.size > 3 * 1024 * 1024) {
+            showToast('Image is over 3MB. It will be stored as a data URL which may slow down the page. Consider using a URL instead.', 'info');
+          }
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            document.getElementById('mTestAvatar').value = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    }, 100);
   }
 
   function deleteTestimonial(id) {
@@ -3206,6 +3412,22 @@
     document.getElementById('accentColorHex').textContent= settings.accentColor || '#8b5cf6';
     document.getElementById('settingsGaId').value       = settings.gaId        || '';
     document.getElementById('settingsPublicUrl').value  = window.location.href.replace('admin.html', 'index.html');
+
+    var favInput = document.getElementById('settingsFaviconFile');
+    if (favInput) {
+      favInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+          showToast('Image is over 2MB.', 'info');
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('settingsFavicon').value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     document.getElementById('settingsAccentColor').addEventListener('input', function() {
       document.getElementById('accentColorHex').textContent = this.value;

@@ -94,12 +94,26 @@ function applySettings() {
   const s = DB.getSettings();
   if (!s) return;
 
-  if (s.siteTitle) document.title = t(s.siteTitle);
+  if (s.title) document.title = t(s.title);
 
-  if (s.siteDescription) {
+  if (s.metaDesc) {
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) { meta = document.createElement('meta'); meta.name = 'description'; document.head.appendChild(meta); }
-    meta.content = t(s.siteDescription);
+    meta.content = t(s.metaDesc);
+  }
+
+  if (s.favicon) {
+    let favicons = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+    if (favicons.length > 0) {
+      favicons.forEach(el => {
+        el.href = s.favicon;
+      });
+    } else {
+      let link = document.createElement('link');
+      link.rel = 'icon';
+      link.href = s.favicon;
+      document.head.appendChild(link);
+    }
   }
 
   if (s.accentColor) {
@@ -405,58 +419,41 @@ function renderSkills(section) {
   el.id = sectionId(section);
   el.className = 'section skills-section';
 
-  const tabsDiv = document.createElement('div');
-  tabsDiv.className = 'skill-tabs';
-
-  const panelsDiv = document.createElement('div');
-  panelsDiv.className = 'skill-panels';
+  const groupsContainer = document.createElement('div');
+  groupsContainer.className = 'skills-groups';
 
   groups.forEach((g, i) => {
-    // Tab button
-    const tab = document.createElement('button');
-    tab.className = 'skill-tab' + (i === 0 ? ' active' : '');
-    tab.dataset.tab = 'skill-group-' + i;
-    tab.textContent = t(g.name) || '';
-    tabsDiv.appendChild(tab);
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'skill-group reveal';
 
-    // Panel
-    const panel = document.createElement('div');
-    panel.className = 'skill-panel' + (i === 0 ? ' active' : '');
-    panel.id = 'skill-group-' + i;
+    const groupTitle = document.createElement('h3');
+    groupTitle.className = 'skill-group__title';
+    groupTitle.textContent = t(g.name) || '';
+    groupDiv.appendChild(groupTitle);
+
     const grid = document.createElement('div');
     grid.className = 'skills-grid';
 
     (g.skills || g.items || []).forEach(skill => {
-      const level = skill.level || 0;
       const item = document.createElement('div');
       item.className = 'skill-item reveal';
+      const skillName = t(skill.name) || '';
+      
+      let iconHtml = '';
+      if (skill.icon) {
+        iconHtml = `<img src="${escapeHtml(skill.icon)}" alt="${escapeHtml(skillName)}" class="skill-custom-icon skill-icon-img" style="width: 32px; height: 32px; object-fit: contain;" />`;
+      } else {
+        iconHtml = getSkillIconHtml(skillName);
+      }
+      
       item.innerHTML = `
-        <div class="skill-item__header">
-          <span class="skill-item__name">${escapeHtml(t(skill.name) || '')}</span>
-          <span class="skill-item__level">${level}%</span>
-        </div>
-        <div class="skill-bar">
-          <div class="skill-bar__fill" data-level="${level}" style="--skill-level: ${level}%;"></div>
-        </div>`;
+        <div class="skill-item__icon">${iconHtml}</div>
+        <span class="skill-item__name">${escapeHtml(skillName)}</span>`;
       grid.appendChild(item);
     });
 
-    panel.appendChild(grid);
-    panelsDiv.appendChild(panel);
-  });
-
-  // Tab switching
-  tabsDiv.querySelectorAll('.skill-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabsDiv.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('active'));
-      panelsDiv.querySelectorAll('.skill-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      const panel = panelsDiv.querySelector('#' + tab.dataset.tab);
-      if (panel) {
-        panel.classList.add('active');
-        panel.querySelectorAll('.skill-bar__fill').forEach(bar => { bar.classList.add('animated'); });
-      }
-    });
+    groupDiv.appendChild(grid);
+    groupsContainer.appendChild(groupDiv);
   });
 
   el.innerHTML = `
@@ -468,8 +465,7 @@ function renderSkills(section) {
     </div>`;
 
   const container = el.querySelector('.container');
-  if (groups.length > 1) container.appendChild(tabsDiv);
-  container.appendChild(panelsDiv);
+  container.appendChild(groupsContainer);
 
   return el;
 }
@@ -506,7 +502,7 @@ function renderExperience(section) {
           <div class="timeline-item__org">${escapeHtml(t(item.company) || '')}</div>
         </div>
         <div class="timeline-item__role">${escapeHtml(t(item.role) || '')}</div>
-        ${item.description ? `<p class="timeline-item__desc">${escapeHtml(t(item.description))}</p>` : ''}`;
+        ${item.description ? `<div class="timeline-item__desc">${sanitizeHtml(t(item.description))}</div>` : ''}`;
       timeline.appendChild(itemEl);
     });
   }
@@ -548,7 +544,7 @@ function renderEducation(section) {
           <div class="timeline-item__org">${escapeHtml(t(item.school) || '')}</div>
         </div>
         <div class="timeline-item__role">${escapeHtml(t(item.degree || item.major) || '')}</div>
-        ${item.description ? `<p class="timeline-item__desc">${escapeHtml(t(item.description))}</p>` : ''}`;
+        ${item.description ? `<div class="timeline-item__desc">${sanitizeHtml(t(item.description))}</div>` : ''}`;
       timeline.appendChild(itemEl);
     });
   }
@@ -603,7 +599,8 @@ function renderProjects(section) {
         : `<div class="project-card__image project-img-placeholder" style="display:flex;align-items:center;justify-content:center;background:var(--bg-secondary);color:var(--text-muted);aspect-ratio:16/9;">${icons.imageIcon}</div>`;
 
       const tagsHtml = tags.map(tag => `<span class="tag tag-sm">${escapeHtml(tag)}</span>`).join('');
-      const desc = truncate(t(project.description) || '', 120);
+      const descText = stripHtml(t(project.description) || '');
+      const desc = truncate(descText, 120);
 
       card.innerHTML = `
         ${project.featured ? `<div class="project-card__featured-badge"><span>★</span><span>${window.currentLang === 'vi' ? 'Nổi bật' : 'Featured'}</span></div>` : ''}
@@ -760,19 +757,21 @@ function renderTestimonials(section) {
     grid.innerHTML = emptyState(window.currentLang === 'vi' ? 'Chưa có nhận xét nào.' : 'No testimonials yet.');
   } else {
     items.forEach((item) => {
-      const avatarHtml = item.avatar
-        ? `<img src="${escapeHtml(item.avatar)}" alt="${escapeHtml(t(item.name) || '')}" class="testimonial-card__avatar" loading="lazy" />`
-        : `<div class="testimonial-card__avatar testimonial-avatar-placeholder" style="display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--accent-light);border:2px solid var(--accent-glow);border-radius:50%;width:48px;height:48px;">${(t(item.name) || '?').charAt(0).toUpperCase()}</div>`;
+      const authorName = t(item.name || item.authorName) || '';
+      const authorAvatar = item.avatar || item.authorAvatar || '';
+      const avatarHtml = authorAvatar
+        ? `<img src="${escapeHtml(authorAvatar)}" alt="${escapeHtml(authorName)}" class="testimonial-card__avatar" loading="lazy" />`
+        : `<div class="testimonial-card__avatar testimonial-avatar-placeholder" style="display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--accent-light);border:2px solid var(--accent-glow);border-radius:50%;width:48px;height:48px;">${authorName.charAt(0).toUpperCase() || '?'}</div>`;
 
       const card = document.createElement('div');
       card.className = 'testimonial-card reveal';
       card.innerHTML = `
         <div class="testimonial-card__quote">“</div>
-        <p class="testimonial-card__content">${escapeHtml(t(item.content) || '')}</p>
+        <div class="testimonial-card__content">${sanitizeHtml(t(item.content) || '')}</div>
         <div class="testimonial-card__author">
           ${avatarHtml}
           <div>
-            <div class="testimonial-card__name">${escapeHtml(t(item.name) || '')}</div>
+            <div class="testimonial-card__name">${escapeHtml(authorName)}</div>
             <div class="testimonial-card__role">${escapeHtml(t(item.role) || '')}${item.company ? ' · ' + escapeHtml(t(item.company)) : ''}</div>
           </div>
         </div>`;
@@ -1219,3 +1218,72 @@ function defaultSections() {
   if (themeBtn && !themeBtn._pb) { themeBtn.addEventListener('click', toggleTheme); themeBtn._pb = true; }
   if (langBtn  && !langBtn._pb)  { langBtn.addEventListener('click',  toggleLang);  langBtn._pb  = true; }
 })();
+
+function getSkillIconHtml(skillName) {
+  const name = skillName.toLowerCase().trim();
+  
+  const deviconMap = {
+    'python': 'devicon-python-plain colored',
+    'pyspark': 'devicon-apachespark-original colored',
+    'apache spark': 'devicon-apachespark-original colored',
+    'spark': 'devicon-apachespark-original colored',
+    'sql': 'devicon-azuresqldatabase-plain colored',
+    'postgresql': 'devicon-postgresql-plain colored',
+    'postgres': 'devicon-postgresql-plain colored',
+    'mysql': 'devicon-mysql-plain colored',
+    'sqlite': 'devicon-sqlite-plain colored',
+    'oracle': 'devicon-oracle-original colored',
+    'git': 'devicon-git-plain colored',
+    'github': 'devicon-github-original',
+    'gitlab': 'devicon-gitlab-plain colored',
+    'dbt': 'devicon-dbt-plain colored',
+    'google cloud': 'devicon-googlecloud-plain colored',
+    'gcp': 'devicon-googlecloud-plain colored',
+    'azure': 'devicon-azure-plain colored',
+    'databricks': 'devicon-databricks-plain colored',
+    'snowflake': 'devicon-snowflake-plain colored',
+    'power bi': 'devicon-powerbi-plain colored',
+    'powerbi': 'devicon-powerbi-plain colored',
+    'react': 'devicon-react-original colored',
+    'typescript': 'devicon-typescript-plain colored',
+    'javascript': 'devicon-javascript-plain colored',
+    'node': 'devicon-nodejs-plain colored',
+    'nodejs': 'devicon-nodejs-plain colored',
+    'docker': 'devicon-docker-plain colored',
+    'kubernetes': 'devicon-kubernetes-plain colored',
+    'aws': 'devicon-amazonwebservices-plain-wordmark colored',
+    'fabric': 'devicon-microsoft-plain colored',
+    'microsoft fabric': 'devicon-microsoft-plain colored',
+    'java': 'devicon-java-plain colored',
+    'scala': 'devicon-scala-plain colored',
+    'pandas': 'devicon-pandas-plain colored',
+    'numpy': 'devicon-numpy-plain colored',
+    'linux': 'devicon-linux-plain colored',
+    'bash': 'devicon-bash-plain colored',
+    'yaml': 'devicon-yaml-plain colored',
+    'html': 'devicon-html5-plain colored',
+    'css': 'devicon-css3-plain colored'
+  };
+
+  for (const key in deviconMap) {
+    if (name.includes(key)) {
+      return `<i class="${deviconMap[key]} skill-icon-img"></i>`;
+    }
+  }
+
+  // Fallback database icon SVG
+  return `
+    <div class="skill-fallback-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22c5.523 0 10-2.239 10-5V7c0-2.761-4.477-5-10-5S2 4.239 2 7v10c0 2.761 4.477 5 10 5z"></path>
+        <path d="M2 12c0 2.76 4.477 5 10 5s10-2.24 10-5"></path>
+        <path d="M2 7c0 2.76 4.477 5 10 5s10-2.24 10-5"></path>
+      </svg>
+    </div>
+  `;
+}
+
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
+}

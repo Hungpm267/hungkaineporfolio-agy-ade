@@ -3605,6 +3605,31 @@
     }, 2000);
   }
 
+  // Clean pasted HTML inside rich text editors to strip style, class, and other attributes
+  function cleanPastedHtml(html) {
+    var allowedTags = /^(p|br|b|strong|i|em|u|h[1-6]|ul|ol|li|blockquote|a|pre|code|hr|span|div)$/i;
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    div.querySelectorAll('*').forEach(function(node) {
+      if (!allowedTags.test(node.tagName)) {
+        var textNode = document.createTextNode(node.textContent);
+        node.replaceWith(textNode);
+        return;
+      }
+      var attrs = Array.prototype.slice.call(node.attributes);
+      attrs.forEach(function(attr) {
+        if (attr.name.startsWith('on') || attr.name === 'style' || attr.name === 'class' || attr.name === 'id') {
+          node.removeAttribute(attr.name);
+        }
+      });
+      if (node.tagName === 'A') {
+        node.setAttribute('rel', 'noopener noreferrer');
+        node.setAttribute('target', '_blank');
+      }
+    });
+    return div.innerHTML;
+  }
+
   // Password strength indicator
   function initPasswordStrength() {
     var pwdInput = document.getElementById('changePwdNew');
@@ -3681,6 +3706,21 @@
     // Escape key closes modal
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') closeModal();
+    });
+
+    // Handle paste event on rich editors to clean styles and fonts
+    document.addEventListener('paste', function(e) {
+      var editor = e.target.closest('.editor-textarea');
+      if (!editor) return;
+      e.preventDefault();
+      var html = (e.originalEvent || e).clipboardData.getData('text/html');
+      if (html) {
+        var cleanHtml = cleanPastedHtml(html);
+        document.execCommand('insertHTML', false, cleanHtml);
+      } else {
+        var text = (e.originalEvent || e).clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, text);
+      }
     });
 
     // Profile

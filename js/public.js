@@ -1127,7 +1127,11 @@ function sanitizeHtml(html) {
   div.innerHTML = html;
   div.querySelectorAll('*').forEach(node => {
     if (!allowedTags.test(node.tagName)) { node.replaceWith(document.createTextNode(node.textContent)); return; }
-    [...node.attributes].forEach(attr => { if (attr.name.startsWith('on')) node.removeAttribute(attr.name); });
+    [...node.attributes].forEach(attr => {
+      if (attr.name.startsWith('on') || attr.name === 'style' || attr.name === 'class' || attr.name === 'id') {
+        node.removeAttribute(attr.name);
+      }
+    });
     if (node.tagName === 'A') { node.setAttribute('rel', 'noopener noreferrer'); node.setAttribute('target', '_blank'); }
   });
   return div.innerHTML;

@@ -1475,6 +1475,93 @@
       </section>
 
       <!-- ══════════════════════════════════════════════════════════
+           PANEL: Blog Editor
+      ══════════════════════════════════════════════════════════ -->
+      <section class="panel" id="panel-blog-editor">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="blogEditorPanelTitle">Add Blog Post</h2>
+            <p class="panel-subtitle">Create or modify your blog post.</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-secondary" id="btnCancelPost">Cancel</button>
+            <button class="btn btn-primary" id="btnSavePost">Save Post</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="lang-tabs" id="blogEditorTabs">
+            <button class="lang-tab active" data-tab="vi" data-group="blog-editor-tabs">VI</button>
+            <button class="lang-tab" data-tab="en" data-group="blog-editor-tabs">EN</button>
+          </div>
+
+          <!-- Vietnamese Pane -->
+          <div class="lang-pane active" data-pane="vi" data-group="blog-editor-tabs" style="margin-top: 1rem;">
+            <div class="form-row">
+              <label>Title (Vietnamese)</label>
+              <input type="text" class="form-input" id="ePostTitleVi" placeholder="Nhập tiêu đề bài viết..." />
+            </div>
+            <div class="form-row" style="margin-top: 1rem;">
+              <label>Content (Vietnamese)</label>
+              <div class="editor-toolbar" id="eToolbarVi">
+                <button type="button" class="toolbar-btn" data-cmd="bold"><b>B</b></button>
+                <button type="button" class="toolbar-btn" data-cmd="italic"><i>I</i></button>
+                <button type="button" class="toolbar-btn" data-cmd="createLink">Link</button>
+                <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="h2">H2</button>
+                <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="h3">H3</button>
+                <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="p">P</button>
+              </div>
+              <div class="form-input editor-textarea" id="ePostContentVi" contenteditable="true" style="min-height: 250px; border-radius: 0 0 8px 8px; line-height: 1.6; padding: 1rem;"></div>
+            </div>
+          </div>
+
+          <!-- English Pane -->
+          <div class="lang-pane" data-pane="en" data-group="blog-editor-tabs" style="margin-top: 1rem;">
+            <div class="form-row">
+              <label>Title (English)</label>
+              <input type="text" class="form-input" id="ePostTitleEn" placeholder="Enter post title..." />
+            </div>
+            <div class="form-row" style="margin-top: 1rem;">
+              <label>Content (English)</label>
+              <div class="editor-toolbar" id="eToolbarEn">
+                <button type="button" class="toolbar-btn" data-cmd="bold"><b>B</b></button>
+                <button type="button" class="toolbar-btn" data-cmd="italic"><i>I</i></button>
+                <button type="button" class="toolbar-btn" data-cmd="createLink">Link</button>
+                <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="h2">H2</button>
+                <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="h3">H3</button>
+                <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="p">P</button>
+              </div>
+              <div class="form-input editor-textarea" id="ePostContentEn" contenteditable="true" style="min-height: 250px; border-radius: 0 0 8px 8px; line-height: 1.6; padding: 1rem;"></div>
+            </div>
+          </div>
+
+          <div class="divider" style="margin: 1.5rem 0;"></div>
+
+          <div class="form-cols form-cols-2">
+            <div class="form-row">
+              <label>Cover Image URL</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="url" class="form-input" id="ePostCover" placeholder="https://..." style="flex: 1;" />
+                <label class="btn btn-secondary btn-icon" style="cursor: pointer; flex-shrink: 0; padding: 0 0.75rem; display: flex; align-items: center; justify-content: center;" title="Upload Image">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <input type="file" id="ePostCoverFile" accept="image/*" style="display: none;" />
+                </label>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Published Date</label>
+              <input type="date" class="form-input" id="ePostDate" />
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top: 1rem;">
+            <label>Tags (comma separated)</label>
+            <input type="text" class="form-input" id="ePostTags" placeholder="e.g. Data Engineering, ETL, dbt" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════════════════════════════════════════════════
            PANEL: Testimonials
       ══════════════════════════════════════════════════════════ -->
       <section class="panel" id="panel-testimonials">
@@ -2449,6 +2536,7 @@
     'education':       'Education',
     'skills':          'Skills',
     'blog':            'Blog',
+    'blog-editor':     'Blog Editor',
     'testimonials':    'Testimonials',
     'contact':         'Contact Settings',
     'section-order':   'Section Order',
@@ -3085,6 +3173,24 @@
   }
 
   // ─── Blog CRUD ────────────────────────────────────────────────
+  var currentEditingPost = null;
+
+  function initRichEditor(container) {
+    if (!container) return;
+    container.querySelectorAll('.toolbar-btn').forEach(function(btn) {
+      btn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var cmd = this.dataset.cmd;
+        var val = this.dataset.val;
+        if (cmd === 'createLink') {
+          val = prompt('Enter URL:');
+          if (!val) return;
+        }
+        document.execCommand(cmd, false, val || null);
+      });
+    });
+  }
+
   function renderBlog() {
     var posts  = get('blog', []);
     var listEl = document.getElementById('blogList');
@@ -3103,90 +3209,51 @@
           '<button class="btn btn-ghost btn-icon" data-edit="' + post.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
           '<button class="btn btn-danger btn-icon" data-delete="' + post.id + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>' +
         '</div>';
-      card.querySelector('[data-edit]').addEventListener('click', function(){ openBlogModal(this.dataset.edit); });
+      card.querySelector('[data-edit]').addEventListener('click', function(){ openBlogEditor(this.dataset.edit); });
       card.querySelector('[data-delete]').addEventListener('click', function(){ deleteBlogPost(this.dataset.delete); });
       listEl.appendChild(card);
     });
   }
 
-  function openBlogModal(id) {
+  function openBlogEditor(id) {
     var posts  = get('blog', []);
     var post   = id ? posts.find(function(p){ return p.id === id; }) : null;
     var isNew  = !post;
-    if (!post) post = { id: uid(), titleVi:'', titleEn:'', contentVi:'', contentEn:'', cover:'', tags:[], publishedDate: new Date().toISOString().slice(0,10) };
-
-    function toolbarBtn(label, cmd, val) {
-      return '<button type="button" class="toolbar-btn" data-cmd="' + cmd + '" data-val="' + (val||'') + '">' + label + '</button>';
+    
+    if (!post) {
+      post = { 
+        id: uid(), 
+        titleVi: '', 
+        titleEn: '', 
+        contentVi: '', 
+        contentEn: '', 
+        cover: '', 
+        tags: [], 
+        publishedDate: new Date().toISOString().slice(0,10) 
+      };
     }
+    
+    currentEditingPost = post;
 
-    var html = '<div class="lang-tabs"><button class="lang-tab active" data-tab="vi" data-group="blog-modal">VI</button><button class="lang-tab" data-tab="en" data-group="blog-modal">EN</button></div>' +
-      '<div class="lang-pane active" data-pane="vi" data-group="blog-modal">' +
-        '<div class="form-row"><label>Title (Vietnamese)</label><input type="text" class="form-input" id="mPostTitleVi" value="' + (post.titleVi||'') + '" /></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Content (Vietnamese)</label>' +
-          '<div class="editor-toolbar" id="toolbarVi">' + toolbarBtn('<b>B</b>','bold') + toolbarBtn('<i>I</i>','italic') + toolbarBtn('Link','createLink','') + toolbarBtn('H2','formatBlock','h2') + toolbarBtn('P','formatBlock','p') + '</div>' +
-          '<div class="form-input editor-textarea" id="mPostContentVi" contenteditable="true" style="min-height:120px; border-radius:0 0 8px 8px; line-height:1.6;">' + (post.contentVi||'') + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="lang-pane" data-pane="en" data-group="blog-modal">' +
-        '<div class="form-row"><label>Title (English)</label><input type="text" class="form-input" id="mPostTitleEn" value="' + (post.titleEn||'') + '" /></div>' +
-        '<div class="form-row" style="margin-top:.75rem;"><label>Content (English)</label>' +
-          '<div class="editor-toolbar" id="toolbarEn">' + toolbarBtn('<b>B</b>','bold') + toolbarBtn('<i>I</i>','italic') + toolbarBtn('Link','createLink','') + toolbarBtn('H2','formatBlock','h2') + toolbarBtn('P','formatBlock','p') + '</div>' +
-          '<div class="form-input editor-textarea" id="mPostContentEn" contenteditable="true" style="min-height:120px; border-radius:0 0 8px 8px; line-height:1.6;">' + (post.contentEn||'') + '</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="divider"></div>' +
-      '<div class="form-cols form-cols-2">' +
-        '<div class="form-row"><label>Cover Image URL</label>' +
-          '<div style="display:flex; gap:0.5rem;">' +
-            '<input type="url" class="form-input" id="mPostCover" value="' + (post.cover||'') + '" placeholder="https://..." style="flex:1;" />' +
-            '<label class="btn btn-secondary btn-icon" style="cursor:pointer; flex-shrink:0;" title="Upload Image">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
-              '<input type="file" id="mPostCoverFile" accept="image/*" style="display:none;" />' +
-            '</label>' +
-          '</div>' +
-        '</div>' +
-        '<div class="form-row"><label>Published Date</label><input type="date" class="form-input" id="mPostDate" value="' + (post.publishedDate||'') + '" /></div>' +
-      '</div>' +
-      '<div class="form-row" style="margin-top:.75rem;"><label>Tags (comma separated)</label><input type="text" class="form-input" id="mPostTags" value="' + (post.tags||[]).join(', ') + '" /></div>';
+    document.getElementById('blogEditorPanelTitle').textContent = isNew ? 'Add Blog Post' : 'Edit Blog Post';
+    document.getElementById('ePostTitleVi').value = post.titleVi || '';
+    document.getElementById('ePostTitleEn').value = post.titleEn || '';
+    document.getElementById('ePostContentVi').innerHTML = post.contentVi || '';
+    document.getElementById('ePostContentEn').innerHTML = post.contentEn || '';
+    document.getElementById('ePostCover').value = post.cover || '';
+    document.getElementById('ePostDate').value = post.publishedDate || '';
+    document.getElementById('ePostTags').value = (post.tags || []).join(', ');
 
-    openModal((isNew ? 'Add' : 'Edit') + ' Blog Post', html, function() {
-      post.titleVi      = document.getElementById('mPostTitleVi').value.trim();
-      post.titleEn      = document.getElementById('mPostTitleEn').value.trim();
-      post.contentVi    = document.getElementById('mPostContentVi').innerHTML;
-      post.contentEn    = document.getElementById('mPostContentEn').innerHTML;
-      post.cover        = document.getElementById('mPostCover').value.trim();
-      post.publishedDate= document.getElementById('mPostDate').value;
-      var tagsRaw = document.getElementById('mPostTags').value;
-      post.tags = tagsRaw.split(',').map(function(t){ return t.trim(); }).filter(Boolean);
-      if (isNew) { posts.push(post); } else {
-        var idx = posts.findIndex(function(p){ return p.id === post.id; });
-        if (idx !== -1) posts[idx] = post;
-      }
-      set('blog', posts);
-      renderBlog();
-      updateDashboardStats();
-      closeModal();
-      showToast('Post ' + (isNew ? 'created' : 'updated') + '!', 'success');
+    // Highlight VI tab by default
+    var tabsContainer = document.getElementById('panel-blog-editor');
+    tabsContainer.querySelectorAll('[data-group="blog-editor-tabs"]').forEach(function(el) {
+      el.classList.remove('active');
     });
+    tabsContainer.querySelector('.lang-tab[data-tab="vi"]').classList.add('active');
+    tabsContainer.querySelector('.lang-pane[data-pane="vi"]').classList.add('active');
 
-    // Wire file upload and checkboxes
-    setTimeout(function() {
-      var coverFileInput = document.getElementById('mPostCoverFile');
-      if (coverFileInput) {
-        coverFileInput.addEventListener('change', function() {
-          var file = this.files[0];
-          if (!file) return;
-          if (file.size > 3 * 1024 * 1024) {
-            showToast('Image is over 3MB. It will be stored as a data URL which may slow down the page. Consider using a URL instead.', 'info');
-          }
-          var reader = new FileReader();
-          reader.onload = function(e) {
-            document.getElementById('mPostCover').value = e.target.result;
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-    }, 100);
+    initLangTabs(tabsContainer);
+    showPanel('blog-editor');
   }
 
   function deleteBlogPost(id) {
@@ -3743,7 +3810,72 @@
     document.getElementById('btnSaveSkills').addEventListener('click', saveSkills);
 
     // Blog
-    document.getElementById('btnAddPost').addEventListener('click', function() { openBlogModal(null); });
+    document.getElementById('btnAddPost').addEventListener('click', function() { openBlogEditor(null); });
+    
+    document.getElementById('btnCancelPost').addEventListener('click', function() {
+      if (confirm('Discard changes and return to blog list?')) {
+        showPanel('blog');
+      }
+    });
+
+    document.getElementById('btnSavePost').addEventListener('click', function() {
+      if (!currentEditingPost) return;
+      var posts = get('blog', []);
+      var isNew = !posts.some(function(p){ return p.id === currentEditingPost.id; });
+      
+      var titleVi = document.getElementById('ePostTitleVi').value.trim();
+      var titleEn = document.getElementById('ePostTitleEn').value.trim();
+      var contentVi = document.getElementById('ePostContentVi').innerHTML;
+      var contentEn = document.getElementById('ePostContentEn').innerHTML;
+      var cover = document.getElementById('ePostCover').value.trim();
+      var date = document.getElementById('ePostDate').value;
+      var tagsRaw = document.getElementById('ePostTags').value;
+      
+      if (!titleVi && !titleEn) {
+        showToast('Please enter at least one title.', 'error');
+        return;
+      }
+      
+      currentEditingPost.titleVi = titleVi;
+      currentEditingPost.titleEn = titleEn;
+      currentEditingPost.contentVi = contentVi;
+      currentEditingPost.contentEn = contentEn;
+      currentEditingPost.cover = cover;
+      currentEditingPost.publishedDate = date;
+      currentEditingPost.tags = tagsRaw.split(',').map(function(t){ return t.trim(); }).filter(Boolean);
+      
+      if (isNew) {
+        posts.push(currentEditingPost);
+      } else {
+        var idx = posts.findIndex(function(p){ return p.id === currentEditingPost.id; });
+        if (idx !== -1) posts[idx] = currentEditingPost;
+      }
+      
+      set('blog', posts);
+      renderBlog();
+      updateDashboardStats();
+      showPanel('blog');
+      showToast('Post ' + (isNew ? 'created' : 'updated') + '!', 'success');
+      currentEditingPost = null;
+    });
+
+    var eCoverFileInput = document.getElementById('ePostCoverFile');
+    if (eCoverFileInput) {
+      eCoverFileInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) {
+          showToast('Image is over 3MB. It will be stored as a data URL which may slow down the page. Consider using a URL instead.', 'info');
+        }
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('ePostCover').value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    initRichEditor(document.getElementById('panel-blog-editor'));
 
     // Testimonials
     document.getElementById('btnAddTestimonial').addEventListener('click', function() { openTestimonialModal(null); });

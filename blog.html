@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Blog Post</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/public.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css" />
+  
+  <!-- Custom styles for blog detail page -->
+  <style>
+    .blog-page-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 15, 0.75);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition-normal), border-color var(--transition-normal);
+    }
+    [data-theme='light'] .blog-page-header {
+      background: rgba(248, 249, 252, 0.85);
+    }
+    .blog-page-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 72px;
+    }
+    .blog-header-left {
+      display: flex;
+      align-items: center;
+    }
+    .blog-header-sep {
+      color: var(--border);
+      font-size: 1rem;
+      font-weight: 300;
+      margin: 0 16px;
+      opacity: 0.5;
+      user-select: none;
+    }
+    .blog-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 6px 16px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    [data-theme='light'] .blog-back-link {
+      background: rgba(0, 0, 0, 0.02);
+    }
+    .blog-back-link:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+      background: rgba(124, 58, 237, 0.12);
+      box-shadow: var(--shadow-glow-sm);
+      transform: translateX(-2px);
+    }
+    .blog-back-link svg {
+      transition: transform var(--transition-fast);
+    }
+    .blog-back-link:hover svg {
+      transform: translateX(-3px);
+    }
+    .blog-detail-container {
+      padding-top: var(--space-3xl);
+      padding-bottom: var(--space-4xl);
+    }
+    .blog-detail-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-2xl);
+    }
+    @media (min-width: 992px) {
+      .blog-detail-layout {
+        grid-template-columns: 1.6fr 0.6fr;
+        align-items: start;
+      }
+    }
+    .blog-page-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+    .blog-page-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.05s linear;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Global Canvas Background -->
+  <canvas class="global-canvas" id="global-canvas" aria-hidden="true" style="position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:-1;"></canvas>
+
+  <!-- Reading Progress Bar -->
+  <div class="blog-page-progress">
+    <div class="blog-page-progress-bar" id="blog-progress-bar"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="blog-page-header">
+    <div class="container blog-page-nav">
+      <div class="blog-header-left">
+        <a href="index.html" class="navbar__logo">Portfolio</a>
+        <span class="blog-header-sep">/</span>
+        <a href="index.html#blog" class="blog-back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          <span id="back-home-label">Back to Portfolio</span>
+        </a>
+      </div>
+      
+      <div class="navbar__actions">
+        <button id="btn-lang" class="icon-btn lang-btn" title="Toggle Language">VI</button>
+        <button id="btn-theme" class="icon-btn" title="Toggle Theme">🌙</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="container blog-detail-container" id="blog-content-area">
+    <div class="empty-state">Loading article...</div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__copy">
+        &copy; <span id="footer-year">2026</span> Portfolio. All rights reserved.
+      </div>
+      <div class="footer__links">
+        <a href="login.html" class="footer__link">Admin Portal</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/blog-detail.js"></script>
+</body>
+</html>

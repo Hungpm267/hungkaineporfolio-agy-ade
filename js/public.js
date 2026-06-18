@@ -12,6 +12,12 @@
 ───────────────────────────────────────────── */
 window.currentLang = 'vi';
 let testimonialTimers = {};
+let blogState = {
+  searchQuery: '',
+  activeTag: 'all',
+  currentPage: 1,
+  carouselActiveIndex: 0
+};
 
 /* ─────────────────────────────────────────────
    ENTRY POINT
@@ -28,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNavbar();
   initScrollAnimations();
   initScrollTop();
-  initBlogModal();
 });
 
 /* ══════════════════════════════════════════════
@@ -653,89 +658,278 @@ function renderBlog(section) {
   const d = section.data || {};
   const title = t(d.title || section.title) || 'Blog';
   const posts = d.posts || d.items || [];
-  const readMoreLabel = window.currentLang === 'vi' ? 'Đọc thêm' : 'Read more';
 
   const el = document.createElement('section');
   el.id = sectionId(section);
   el.className = 'section blog-section';
 
-  const grid = document.createElement('div');
-  grid.className = 'blog-grid container';
+  // Section Header + Layout structure
+  el.innerHTML = `
+    <div class="container">
+      <div class="section-header reveal">
+        <h2 class="section-title">${escapeHtml(title)}</h2>
+        <div class="section-line"></div>
+      </div>
+      
+      <!-- Blog Search & Filter Toolbar -->
+      <div class="blog-toolbar reveal-stagger">
+        <div class="blog-search-wrapper">
+          <svg class="blog-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" class="blog-search-input" id="blog-search-field" placeholder="${window.currentLang === 'vi' ? 'Tìm kiếm bài viết...' : 'Search blog posts...'}" value="${escapeHtml(blogState.searchQuery)}" />
+          <button class="blog-search-clear" id="blog-search-clear" style="display: ${blogState.searchQuery ? 'block' : 'none'};" title="Clear search">&times;</button>
+        </div>
+        <div class="blog-tags-scroll-container">
+          <div class="blog-tags-scroll" id="blog-tags-list"></div>
+        </div>
+      </div>
 
-  if (!posts.length) {
-    grid.innerHTML = emptyState(window.currentLang === 'vi' ? 'Chưa có bài viết nào.' : 'No blog posts yet.');
-  } else {
-    posts.forEach((post, idx) => {
-      const card = document.createElement('article');
-      card.className = 'blog-card reveal';
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      card.dataset.postIdx = idx;
+      <!-- Blog Carousel Wrapper -->
+      <div class="blog-carousel-wrapper" id="blog-carousel-wrapper-el"></div>
+    </div>
+  `;
 
-      const imageHtml = post.cover
-        ? `<img src="${escapeHtml(post.cover)}" alt="${escapeHtml(t(post.title) || '')}" class="blog-card__cover" loading="lazy" />`
-        : `<div class="blog-card__cover blog-cover-placeholder" style="display:flex;align-items:center;justify-content:center;background:var(--bg-secondary);color:var(--text-muted);aspect-ratio:16/9;">${icons.fileIcon}</div>`;
+  // Initialize interactive controls
+  setTimeout(() => {
+    const searchField = el.querySelector('#blog-search-field');
+    const searchClear = el.querySelector('#blog-search-clear');
 
-      const excerpt = truncate(t(post.excerpt || post.content) || '', 150);
-      const dateStr = formatDate(post.date, window.currentLang);
-      const tagsHtml = (post.tags || []).map(tag => `<span class="tag tag-sm">${escapeHtml(tag)}</span>`).join('');
+    if (searchField) {
+      searchField.addEventListener('input', (e) => {
+        blogState.searchQuery = e.target.value;
+        blogState.carouselActiveIndex = 0;
+        if (searchClear) {
+          searchClear.style.display = e.target.value ? 'block' : 'none';
+        }
+        updateBlogView(posts, el);
+      });
+    }
 
-      card.innerHTML = `
-        ${imageHtml}
-        <div class="blog-card__body">
-          <div class="blog-card__meta">
-            <time datetime="${escapeHtml(post.date || '')}">${escapeHtml(dateStr)}</time>
-          </div>
-          <h3 class="blog-card__title">${escapeHtml(t(post.title) || '')}</h3>
-          <p class="blog-card__excerpt">${escapeHtml(excerpt)}</p>
-          <div class="blog-card__tags">${tagsHtml}</div>
-        </div>`;
+    if (searchClear) {
+      searchClear.addEventListener('click', () => {
+        if (searchField) {
+          searchField.value = '';
+          blogState.searchQuery = '';
+          blogState.carouselActiveIndex = 0;
+          searchClear.style.display = 'none';
+          updateBlogView(posts, el);
+        }
+      });
+    }
 
-      const openModal = () => openBlogModal(post);
-      card.addEventListener('click', openModal);
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } });
+    updateBlogView(posts, el);
+  }, 50);
 
-      grid.appendChild(card);
-    });
-  }
-
-  el.innerHTML = `<div class="container"><div class="section-header reveal"><h2 class="section-title">${escapeHtml(title)}</h2><div class="section-line"></div></div></div>`;
-  el.querySelector('.container').appendChild(grid);
   return el;
 }
 
-/* ─ Blog modal ─ */
-function initBlogModal() {
-  const modal   = document.getElementById('blog-modal');
-  const closeBtn = document.getElementById('blog-modal-close');
-  closeBtn?.addEventListener('click', closeBlogModal);
-  modal?.addEventListener('click', e => { if (e.target === modal) closeBlogModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBlogModal(); });
+function updateBlogView(posts, container) {
+  const wrapper = container.querySelector('#blog-carousel-wrapper-el');
+  const tagsList = container.querySelector('#blog-tags-list');
+  if (!wrapper) return;
+
+  // Helper to safely get tags array from post (supports string or array)
+  const getPostTags = (p) => {
+    if (!p || !p.tags) return [];
+    if (Array.isArray(p.tags)) return p.tags;
+    if (typeof p.tags === 'string') return p.tags.split(',').map(t => t.trim()).filter(Boolean);
+    return [];
+  };
+
+  // Helper to update CSS classes for 3D Carousel positions
+  const updateCarouselStates = (cards, activeIndex) => {
+    const len = cards.length;
+    if (len === 0) return;
+
+    cards.forEach((card, idx) => {
+      card.classList.remove('active', 'prev', 'next');
+      card.style.display = 'none'; // Hide by default to prevent overlapping items
+      
+      if (idx === activeIndex) {
+        card.classList.add('active');
+        card.style.display = 'block';
+      } else if (len > 1 && idx === (activeIndex - 1 + len) % len) {
+        card.classList.add('prev');
+        card.style.display = 'block';
+      } else if (len > 1 && idx === (activeIndex + 1) % len) {
+        card.classList.add('next');
+        card.style.display = 'block';
+      }
+    });
+  };
+
+  // 1. Gather all tags dynamically
+  const allTags = new Set();
+  posts.forEach(p => {
+    getPostTags(p).forEach(tag => {
+      if (tag) allTags.add(tag.trim());
+    });
+  });
+
+  const tagsArr = ['all', ...Array.from(allTags)];
+
+  // 2. Render Tags List
+  if (tagsList) {
+    tagsList.innerHTML = tagsArr.map(tag => {
+      const isActive = blogState.activeTag === tag;
+      const label = tag === 'all' ? (window.currentLang === 'vi' ? 'Tất cả' : 'All') : tag;
+      return `<button class="blog-tag-btn ${isActive ? 'active' : ''}" data-tag="${escapeHtml(tag)}">${escapeHtml(label)}</button>`;
+    }).join('');
+
+    // Attach click events
+    tagsList.querySelectorAll('.blog-tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        blogState.activeTag = btn.dataset.tag;
+        blogState.carouselActiveIndex = 0;
+        updateBlogView(posts, container);
+      });
+    });
+  }
+
+  // 3. Filter posts based on active search & tag
+  let filtered = posts;
+
+  // Filter by tag (case-insensitive check for safety)
+  if (blogState.activeTag && blogState.activeTag.toLowerCase() !== 'all') {
+    filtered = filtered.filter(p => getPostTags(p).map(t => t.trim().toLowerCase()).includes(blogState.activeTag.toLowerCase()));
+  }
+
+  // Filter by search query
+  if (blogState.searchQuery) {
+    const q = blogState.searchQuery.toLowerCase().trim();
+    filtered = filtered.filter(p => {
+      const titleStr = (t(p.title) || '').toLowerCase();
+      const contentStr = (t(p.content) || t(p.excerpt) || '').toLowerCase();
+      const tagsStr = getPostTags(p).join(' ').toLowerCase();
+      return titleStr.includes(q) || contentStr.includes(q) || tagsStr.includes(q);
+    });
+  }
+
+  // 4. Render Grid / Carousel items
+  if (filtered.length === 0) {
+    wrapper.innerHTML = `<div style="grid-column: 1/-1; width: 100%; text-align: center;">${emptyState(window.currentLang === 'vi' ? 'Không tìm thấy bài viết nào phù hợp.' : 'No matching blog posts found.')}</div>`;
+    return;
+  }
+
+  // Generate Navigation Buttons HTML if there's more than 1 post
+  let navButtonsHtml = '';
+  if (filtered.length > 1) {
+    navButtonsHtml = `
+      <button class="blog-carousel-btn prev" id="blog-carousel-prev" aria-label="Previous article">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="blog-carousel-btn next" id="blog-carousel-next" aria-label="Next article">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    `;
+  }
+
+  wrapper.innerHTML = `
+    ${navButtonsHtml}
+    <div class="blog-carousel" id="blog-carousel-el"></div>
+  `;
+
+  const carousel = wrapper.querySelector('#blog-carousel-el');
+  const cards = [];
+
+  filtered.forEach((post, idx) => {
+    const card = document.createElement('article');
+    card.className = 'blog-carousel-card';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    
+    // Calculate reading time for content
+    const contentText = t(post.content) || t(post.excerpt) || '';
+    const readTime = estimateReadingTime(contentText);
+    const dateStr = formatDate(post.publishedDate || post.date, window.currentLang);
+
+    const imageHtml = post.cover
+      ? `<div class="blog-card__image-container"><img src="${escapeHtml(post.cover)}" alt="${escapeHtml(t(post.title) || '')}" class="blog-card__cover" loading="lazy" /></div>`
+      : `<div class="blog-card__image-container"><div class="blog-card__cover blog-cover-placeholder" style="display:flex;align-items:center;justify-content:center;background:var(--bg-secondary);color:var(--text-muted);aspect-ratio:16/9;">${icons.fileIcon}</div></div>`;
+
+    const excerpt = truncate(t(post.excerpt || post.content) || '', 120);
+    const tagsHtml = getPostTags(post).map(tag => `<span class="tag tag-sm">${escapeHtml(tag)}</span>`).join('');
+
+    card.innerHTML = `
+      ${imageHtml}
+      <div class="blog-card__body">
+        <div class="blog-card__meta">
+          <time datetime="${escapeHtml(post.publishedDate || post.date || '')}">${escapeHtml(dateStr)}</time>
+          <span class="blog-card__divider">•</span>
+          <span class="blog-card__read-time">${readTime}</span>
+        </div>
+        <h3 class="blog-card__title">${escapeHtml(t(post.title) || '')}</h3>
+        <p class="blog-card__excerpt">${escapeHtml(excerpt)}</p>
+        <div class="blog-card__tags">${tagsHtml}</div>
+      </div>
+    `;
+
+    const openArticle = () => {
+      const isFileProtocol = window.location.protocol === 'file:';
+      const hasHtmlExtension = window.location.pathname.endsWith('.html');
+      const targetPage = (isFileProtocol || hasHtmlExtension) ? 'blog.html' : 'blog';
+      window.location.href = `${targetPage}?id=${post.id}`;
+    };
+
+    // Card click event (allows clicking center card to open, side cards to slide)
+    card.addEventListener('click', () => {
+      if (card.classList.contains('active')) {
+        openArticle();
+      } else if (card.classList.contains('prev')) {
+        blogState.carouselActiveIndex = (blogState.carouselActiveIndex - 1 + filtered.length) % filtered.length;
+        updateCarouselStates(cards, blogState.carouselActiveIndex);
+      } else if (card.classList.contains('next')) {
+        blogState.carouselActiveIndex = (blogState.carouselActiveIndex + 1) % filtered.length;
+        updateCarouselStates(cards, blogState.carouselActiveIndex);
+      }
+    });
+
+    card.addEventListener('keydown', e => {
+      if (card.classList.contains('active') && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        openArticle();
+      }
+    });
+
+    carousel.appendChild(card);
+    cards.push(card);
+  });
+
+  // Attach control button event listeners
+  if (filtered.length > 1) {
+    const prevBtn = wrapper.querySelector('#blog-carousel-prev');
+    const nextBtn = wrapper.querySelector('#blog-carousel-next');
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        blogState.carouselActiveIndex = (blogState.carouselActiveIndex - 1 + filtered.length) % filtered.length;
+        updateCarouselStates(cards, blogState.carouselActiveIndex);
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        blogState.carouselActiveIndex = (blogState.carouselActiveIndex + 1) % filtered.length;
+        updateCarouselStates(cards, blogState.carouselActiveIndex);
+      });
+    }
+  }
+
+  // Set initial states
+  if (blogState.carouselActiveIndex >= filtered.length) {
+    blogState.carouselActiveIndex = 0;
+  }
+  updateCarouselStates(cards, blogState.carouselActiveIndex);
 }
 
-function openBlogModal(post) {
-  const modal = document.getElementById('blog-modal');
-  const body  = document.getElementById('blog-modal-body');
-  if (!modal || !body) return;
-  const title   = t(post.title) || '';
-  const dateStr = formatDate(post.date, window.currentLang);
-  const content = t(post.content) || t(post.excerpt) || '';
-  body.innerHTML = `
-    ${post.cover ? `<img src="${escapeHtml(post.cover)}" alt="${escapeHtml(title)}" class="blog-modal-cover" />` : ''}
-    <h2 id="blog-modal-title" class="blog-modal-title">${escapeHtml(title)}</h2>
-    <time class="blog-date">${escapeHtml(dateStr)}</time>
-    <div class="blog-modal-content-body">${sanitizeHtml(content)}</div>`;
-  modal.classList.add('active');
-  modal.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeBlogModal() {
-  const modal = document.getElementById('blog-modal');
-  if (!modal) return;
-  modal.classList.remove('active');
-  modal.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
+function estimateReadingTime(content) {
+  if (!content) return '';
+  const text = content.replace(/<[^>]*>/g, '').trim();
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const speed = 200; // Average reading speed: 200 WPM
+  const minutes = Math.max(1, Math.ceil(wordCount / speed));
+  return window.currentLang === 'vi' ? `${minutes} phút đọc` : `${minutes} min read`;
 }
 
 /* ══════════════════════════════════════════════

@@ -3478,7 +3478,22 @@
     document.getElementById('settingsAccentColor').value= settings.accentColor || '#8b5cf6';
     document.getElementById('accentColorHex').textContent= settings.accentColor || '#8b5cf6';
     document.getElementById('settingsGaId').value       = settings.gaId        || '';
-    document.getElementById('settingsPublicUrl').value  = window.location.href.replace('admin.html', 'index.html');
+    var currentUrl = window.location.href;
+    var publicUrl = currentUrl;
+    if (currentUrl.indexOf('admin.html') !== -1) {
+      publicUrl = currentUrl.replace('admin.html', 'index.html');
+    } else {
+      try {
+        var urlObj = new URL(currentUrl);
+        if (urlObj.pathname === '/admin' || urlObj.pathname === '/admin/') {
+          urlObj.pathname = '/';
+          publicUrl = urlObj.toString();
+        }
+      } catch (e) {
+        publicUrl = currentUrl.replace('/admin', '/');
+      }
+    }
+    document.getElementById('settingsPublicUrl').value = publicUrl;
 
     var favInput = document.getElementById('settingsFaviconFile');
     if (favInput) {

@@ -24,7 +24,10 @@ const Auth = {
   },
 
   _isLoginPage() {
-    return window.location.pathname.includes(this.LOGIN_PAGE);
+    const path = window.location.pathname.toLowerCase();
+    return path.includes(this.LOGIN_PAGE.toLowerCase()) || 
+           path.endsWith('/login') || 
+           path.endsWith('/login/');
   },
 
   /**

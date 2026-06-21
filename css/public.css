@@ -1729,9 +1729,20 @@ strong { font-weight: 600; color: var(--text-primary); }
 }
 
 .blog-modal-content-body {
+  font-family: var(--font-body);
   color: var(--text-secondary);
   line-height: 1.8;
   font-size: 1.02rem;
+}
+
+.blog-modal-content-body h1 {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-top: var(--space-xl);
+  margin-bottom: var(--space-md);
+  scroll-margin-top: 20px;
 }
 
 .blog-modal-content-body p {
@@ -1872,6 +1883,7 @@ strong { font-weight: 600; color: var(--text-primary); }
 }
 
 .blog-toc-link {
+  font-family: var(--font-body);
   color: var(--text-secondary);
   text-decoration: none;
   transition: all var(--transition-fast);

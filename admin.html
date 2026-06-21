@@ -1511,7 +1511,7 @@
                 <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="h3">H3</button>
                 <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="p">P</button>
               </div>
-              <div class="form-input editor-textarea" id="ePostContentVi" contenteditable="true" style="min-height: 250px; border-radius: 0 0 8px 8px; line-height: 1.6; padding: 1rem;"></div>
+              <textarea class="form-input editor-textarea" id="ePostContentVi" style="min-height: 250px; border-radius: 0 0 8px 8px; line-height: 1.6; padding: 1rem; font-family: var(--font-mono); font-size: 0.9rem; resize: vertical;" placeholder="Nhập nội dung bài viết (Markdown)..."></textarea>
             </div>
           </div>
 
@@ -1531,7 +1531,7 @@
                 <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="h3">H3</button>
                 <button type="button" class="toolbar-btn" data-cmd="formatBlock" data-val="p">P</button>
               </div>
-              <div class="form-input editor-textarea" id="ePostContentEn" contenteditable="true" style="min-height: 250px; border-radius: 0 0 8px 8px; line-height: 1.6; padding: 1rem;"></div>
+              <textarea class="form-input editor-textarea" id="ePostContentEn" style="min-height: 250px; border-radius: 0 0 8px 8px; line-height: 1.6; padding: 1rem; font-family: var(--font-mono); font-size: 0.9rem; resize: vertical;" placeholder="Enter post content (Markdown)..."></textarea>
             </div>
           </div>
 
@@ -3182,6 +3182,47 @@
         e.preventDefault();
         var cmd = this.dataset.cmd;
         var val = this.dataset.val;
+
+        // Check if this is the blog editor toolbar (which uses textareas)
+        var toolbar = this.closest('#eToolbarVi, #eToolbarEn');
+        if (toolbar) {
+          var textareaId = toolbar.id === 'eToolbarVi' ? 'ePostContentVi' : 'ePostContentEn';
+          var textarea = document.getElementById(textareaId);
+          if (!textarea) return;
+
+          var start = textarea.selectionStart;
+          var end = textarea.selectionEnd;
+          var text = textarea.value;
+          var selected = text.substring(start, end);
+
+          var replacement = '';
+          if (cmd === 'bold') {
+            replacement = '**' + (selected || 'bold text') + '**';
+          } else if (cmd === 'italic') {
+            replacement = '*' + (selected || 'italic text') + '*';
+          } else if (cmd === 'createLink') {
+            var url = prompt('Enter URL:', 'https://');
+            if (!url) return;
+            replacement = '[' + (selected || 'link text') + '](' + url + ')';
+          } else if (cmd === 'formatBlock') {
+            if (val === 'h2') {
+              replacement = '\n## ' + (selected || 'Heading 2') + '\n';
+            } else if (val === 'h3') {
+              replacement = '\n### ' + (selected || 'Heading 3') + '\n';
+            } else if (val === 'p') {
+              replacement = '\n' + selected + '\n';
+            }
+          }
+
+          if (replacement) {
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + replacement.length, start + replacement.length);
+          }
+          return;
+        }
+
+        // Otherwise, it's a modal contenteditable rich editor
         if (cmd === 'createLink') {
           val = prompt('Enter URL:');
           if (!val) return;
@@ -3238,8 +3279,18 @@
     document.getElementById('blogEditorPanelTitle').textContent = isNew ? 'Add Blog Post' : 'Edit Blog Post';
     document.getElementById('ePostTitleVi').value = post.titleVi || '';
     document.getElementById('ePostTitleEn').value = post.titleEn || '';
-    document.getElementById('ePostContentVi').innerHTML = post.contentVi || '';
-    document.getElementById('ePostContentEn').innerHTML = post.contentEn || '';
+    var areaVi = document.getElementById('ePostContentVi');
+    if (areaVi.tagName === 'TEXTAREA') {
+      areaVi.value = post.contentVi || '';
+    } else {
+      areaVi.innerHTML = post.contentVi || '';
+    }
+    var areaEn = document.getElementById('ePostContentEn');
+    if (areaEn.tagName === 'TEXTAREA') {
+      areaEn.value = post.contentEn || '';
+    } else {
+      areaEn.innerHTML = post.contentEn || '';
+    }
     document.getElementById('ePostCover').value = post.cover || '';
     document.getElementById('ePostDate').value = post.publishedDate || '';
     document.getElementById('ePostTags').value = (post.tags || []).join(', ');
@@ -3795,12 +3846,24 @@
       var editor = e.target.closest('.editor-textarea');
       if (!editor) return;
       e.preventDefault();
+      
+      var text = (e.originalEvent || e).clipboardData.getData('text/plain');
+      
+      if (editor.tagName === 'TEXTAREA') {
+        var start = editor.selectionStart;
+        var end = editor.selectionEnd;
+        var val = editor.value;
+        editor.value = val.substring(0, start) + text + val.substring(end);
+        editor.focus();
+        editor.setSelectionRange(start + text.length, start + text.length);
+        return;
+      }
+      
       var html = (e.originalEvent || e).clipboardData.getData('text/html');
       if (html) {
         var cleanHtml = cleanPastedHtml(html);
         document.execCommand('insertHTML', false, cleanHtml);
       } else {
-        var text = (e.originalEvent || e).clipboardData.getData('text/plain');
         document.execCommand('insertText', false, text);
       }
     });
@@ -3840,8 +3903,8 @@
       
       var titleVi = document.getElementById('ePostTitleVi').value.trim();
       var titleEn = document.getElementById('ePostTitleEn').value.trim();
-      var contentVi = document.getElementById('ePostContentVi').innerHTML;
-      var contentEn = document.getElementById('ePostContentEn').innerHTML;
+      var contentVi = document.getElementById('ePostContentVi').value !== undefined ? document.getElementById('ePostContentVi').value : document.getElementById('ePostContentVi').innerHTML;
+      var contentEn = document.getElementById('ePostContentEn').value !== undefined ? document.getElementById('ePostContentEn').value : document.getElementById('ePostContentEn').innerHTML;
       var cover = document.getElementById('ePostCover').value.trim();
       var date = document.getElementById('ePostDate').value;
       var tagsRaw = document.getElementById('ePostTags').value;

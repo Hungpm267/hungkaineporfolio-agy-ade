@@ -848,7 +848,13 @@ function updateBlogView(posts, container) {
       ? `<div class="blog-card__image-container"><img src="${escapeHtml(post.cover)}" alt="${escapeHtml(t(post.title) || '')}" class="blog-card__cover" loading="lazy" /></div>`
       : `<div class="blog-card__image-container"><div class="blog-card__cover blog-cover-placeholder" style="display:flex;align-items:center;justify-content:center;background:var(--bg-secondary);color:var(--text-muted);aspect-ratio:16/9;">${icons.fileIcon}</div></div>`;
 
-    const excerpt = truncate(t(post.excerpt || post.content) || '', 120);
+    let excerptText = t(post.excerpt) || '';
+    if (!excerptText) {
+      const fullContent = t(post.content) || '';
+      const htmlContent = (typeof marked !== 'undefined') ? marked.parse(fullContent) : fullContent;
+      excerptText = stripHtml(htmlContent);
+    }
+    const excerpt = truncate(excerptText, 120);
     const tagsHtml = getPostTags(post).map(tag => `<span class="tag tag-sm">${escapeHtml(tag)}</span>`).join('');
 
     card.innerHTML = `

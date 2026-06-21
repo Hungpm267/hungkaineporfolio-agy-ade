@@ -133,6 +133,11 @@ function estimateReadingTime(content) {
   return window.currentLang === 'vi' ? `${minutes} phút đọc` : `${minutes} min read`;
 }
 
+function stripHtml(html) {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
+}
+
 function sanitizeHtml(html) {
   if (!html) return '';
   if (!/<[a-z][\s\S]*>/i.test(html)) {
@@ -291,7 +296,10 @@ function renderBlogDetail() {
   document.title = title + " | Pham Manh Hung Portfolio";
 
   const dateStr = formatDate(post.publishedDate || post.date, window.currentLang);
-  const content = t(post.content) || t(post.excerpt) || '';
+  let content = t(post.content) || t(post.excerpt) || '';
+  if (typeof marked !== 'undefined') {
+    content = marked.parse(content);
+  }
   const readTime = estimateReadingTime(content);
 
   // Generate Table of Contents (TOC)
@@ -332,7 +340,13 @@ function renderBlogDetail() {
     relatedPosts.forEach(rp => {
       const rpTitle = t(rp.title) || '';
       const rpDate = formatDate(rp.publishedDate || rp.date, window.currentLang);
-      const rpExcerpt = truncate(t(rp.excerpt || rp.content) || '', 85);
+      let rpExcerptText = t(rp.excerpt) || '';
+      if (!rpExcerptText) {
+        const rpContent = t(rp.content) || '';
+        const htmlContent = (typeof marked !== 'undefined') ? marked.parse(rpContent) : rpContent;
+        rpExcerptText = stripHtml(htmlContent);
+      }
+      const rpExcerpt = truncate(rpExcerptText, 85);
       const rpImage = rp.cover 
         ? `<div class="related-card-img"><img src="${escapeHtml(rp.cover)}" alt="${escapeHtml(rpTitle)}" /></div>`
         : `<div class="related-card-img placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>`;
